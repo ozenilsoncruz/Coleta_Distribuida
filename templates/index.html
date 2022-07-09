@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Coleta de Lixo</title>
+    <meta lang="pt-br">
+    <meta charset="UTF-8">
+     <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">    CDN BOOTSTRAP.CSS -->
+     <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>     CDN BOOTSTRAP.JS -->
+     <!-- <script src="https://kit.fontawesome.com/011fde3672.js" crossorigin="anonymous"></script>       CDN FONT-AWESOME -->
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head> 
+
+<body>
+    <div class="bg-white">
+        <p id="app">{{message}}</p>
+        {{ lixeiras }}
+    </div>
+</body>
+</html>
+
+
+<script type="importmap"> 
+    {
+        "imports": {
+            "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+    }
+</script>
+<script type="module">
+    import { createApp } from 'vue'
+    createApp({
+        el: "#app",
+
+        data() {
+            return {
+                message: 'Hello World!', lixeiras:[]
+            }
+            },
+            mounted(){
+            console.log(this.message)
+            axios.get('/lixeiras/45')
+                    .then((res) =>{
+                        console.log(res.data)
+                    })
+                    .catch(err =>{
+                        console.error(err)
+                    })
+            },
+        }).mount('#app');    
+</script>
