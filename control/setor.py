@@ -19,6 +19,7 @@ class Setor(Server):
         self.__longitude = longitude
         self.__lixeiras_coletar = []
         self.__lixeiras = []
+        self.__setores = {}
     
     def receberDados(self):
         """Recebe e gerencia as mensagens dos topicos para o qual o setor foi inscrito
@@ -33,28 +34,9 @@ class Setor(Server):
                     mensagem = json.loads(mensagem)
                     
                     if 'setor' in msg.topic and self._server_id not in msg.topic:
-                        if 'REQUEST' in mensagem.get('acao'):
-                            print('000000000000000000000000000',msg.topic,mensagem)
-                            
-                            # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
-                            if float(mensagem.get('timestamp')) > self.timestamp and self.isRequesting == False:
-                                msg = {'acao':'REPLY', 'timestamp': self.timestamp, 'setor':self._server_id}
-                                self.enviarDados(self._server_id+'/timestamp/', msg)                              # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS
-                                
-                            # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
-                            else:
-                                msg = {'acao':'DENIED', 'timestamp': self.timestamp, 'setor':self._server_id }
-                                self.enviarDados(self._server_id+'/timestamp/', msg)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
-                        
-                        if 'REPLY' in mensagem.get('acao'):
-                            # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
-                            # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
-                            Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
-                        
-                        if 'DENIED' in mensagem.get('acao'):
-                            print('aaaa')
-                            # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
-                    
+                        Thread(target=self.gerenciarSetor, args=(mensagem, )).start()
+                    if self._server_id == msg.topic:
+                        pass
                     if 'lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
                     else:
@@ -72,6 +54,10 @@ class Setor(Server):
             msg (dict): mensagem recebido do caminhao
         """
         if msg.get('acao') != '' and msg.get('acao') != None:
+            if 'REQUEST' in msg.get('acao'):
+                
+                pass
+            
             mensagem = {'acao': 'esvaziar'}
             self.enviarDados('setor/caminhao/'+msg.get('acao'), mensagem)
                    
@@ -127,16 +113,36 @@ class Setor(Server):
         """
         if msg.get('dados') != '' or msg.get('dados') != None:
             id =  msg.get('dados').get('setor').get('id')
-            if id not in self._setores_inscritos:
-                self._setores_inscritos[id] = msg.get('dados').get('setor')
-            else:
-                if msg.get('dados').get('lixeiras') != self.__lixeiras.get(id):
-                    self.__lixeiras[id] = msg.get('dados').get('lixeiras')
-                    self.enviarDadosAdm()
-                if msg.get('dados').get('lixeiras_coletar') != self.__lixeiras_coletar.get(id):
-                    self.__lixeiras_coletar[id] = msg.get('dados').get('lixeiras_coletar')
-                    self.enviarDadosCaminhao()
-            print("Lixeiras a coletar ---> ", self.__lixeiras_coletar)
+            self.__setores[id] = msg.get('dados').get('setor')
+            
+            if 'REQUEST' in msg.get('dados').get('acao'):
+                print('000000000000000000000000000', msg.topic, msg)
+                mensagem = {'dados': {'acao': '', 'setor': msg.get('dados').get('setor')}}        
+                # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
+                if float(msg.get('dados').get('timestamp')) > self.timestamp and self.isRequesting == False:
+                    mensagem['dados']['acao']= 'REPLY'                           # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS    
+                # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
+                else:
+                    mensagem['dados']['acao']= 'DENIED'
+                self.enviarDados(id, mensagem)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
+            
+    def gerenciarThisSetor(self, msg: dict):
+        """Gerencia as mensagem enviada para o proprio setor
+
+        Args:
+            msg (dict): mensagem recebida
+        """
+        if 'REPLY' in msg.get('dados').get('acao'):
+                # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
+                # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
+                #Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
+            if len(self.__setores.values()) == 3:
+                self.exclusaoMutua(self.__setores.values())
+                pass
+            
+        if 'DENIED' in msg.get('dados').get('acao'):
+                print( 'aaaa')
+                # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
       
     # ajustar -------------------------------------------------
     def enviarDadosCaminhao(self):
@@ -149,15 +155,14 @@ class Setor(Server):
             self.enviarDados('setor/caminhao/listaColeta', mensagemCaminhao)
           
     # ajustar -------------------------------------------------
-    def enviarDadosServidor(self):
+    def enviarDadosServidor(self, acao: str = ''):
         """Envia informacoes de todas as para o topico do setor/
         """
-        msg = {'dados': {'lixeiras': self.__lixeiras, 
-                         'lixeiras_coletar': self.__lixeiras_coletar,
+        msg = {'dados': {'acao': acao,
                          'setor': self.dadosSetor()
                          }
                }
-        self.enviarDados(self._server_id+'/update/', msg)
+        self.enviarDados(self._server_id, msg)
    
     def __separaIds(self, lixeiras: list) -> list:
         """Organiza a ordem de coleta por parte do adm
@@ -181,8 +186,6 @@ class Setor(Server):
         """
         return {
             "id": self._server_id,
-            "latitude": self.__latitude, 
-            "longitude": self.__longitude,
             "timestamp": self.timestamp
         }
     
