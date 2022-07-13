@@ -5,7 +5,7 @@ from threading import Thread
 
 from paho.mqtt.client import Client
 
-_BROKER = 'test.mosquitto.org'
+_BROKER = 'broker.emqx.io'
 _PORT = 1883
 
 class Cliente: 
