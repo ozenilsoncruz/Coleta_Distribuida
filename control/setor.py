@@ -1,8 +1,10 @@
 import json
+from math import dist
 from random import randint, choice
 import string
 from threading import Thread
 from paho.mqtt.publish import single
+from model.caminhao import Caminhao
 
 from server import Server
 
@@ -17,6 +19,7 @@ class Setor(Server):
         self.__longitude = longitude
         self.__lixeiras_coletar = []
         self.__lixeiras = []
+        self.__caminhao = Caminhao(latitude, longitude)
     
     def receberDados(self):
         """Recebe e gerencia as mensagens dos topicos para o qual o setor foi inscrito
@@ -30,27 +33,28 @@ class Setor(Server):
                 if mensagem:
                     mensagem = json.loads(mensagem)
                     
-                    if 'REQUEST' in mensagem.get('acao'):
-                        print('000000000000000000000000000',msg.topic,mensagem)
-                        
-                        # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
-                        if float(mensagem.get('timestamp')) > self.timestamp and self.isRequesting == False:
-                            msg = {'acao':'REPLY', 'timestamp': self.timestamp, 'setor':self._server_id }
-                            self.enviarDados(self._server_id+'/timestamp/', msg)                              # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS
+                    if 'setor' in msg.topic:
+                        if 'REQUEST' in mensagem.get('acao'):
+                            print('000000000000000000000000000',msg.topic,mensagem)
                             
-                        # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
-                        else:
-                            msg = {'acao':'DENIED', 'timestamp': self.timestamp, 'setor':self._server_id }
-                            self.enviarDados(self._server_id+'/timestamp/', msg)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
-                    
-                    if 'REPLY' in mensagem.get('acao'):
-                        # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
-                        # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
-                        Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
-                    
-                    if 'DENIED' in mensagem.get('acao'):
-                        print('aaaa')
-                        # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
+                            # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
+                            if float(mensagem.get('timestamp')) > self.timestamp and self.isRequesting == False:
+                                msg = {'acao':'REPLY', 'timestamp': self.timestamp, 'setor':self._server_id}
+                                self.enviarDados(self._server_id+'/timestamp/', msg)                              # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS
+                                
+                            # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
+                            else:
+                                msg = {'acao':'DENIED', 'timestamp': self.timestamp, 'setor':self._server_id }
+                                self.enviarDados(self._server_id+'/timestamp/', msg)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
+                        
+                        if 'REPLY' in mensagem.get('acao'):
+                            # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
+                            # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
+                            Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
+                        
+                        if 'DENIED' in mensagem.get('acao'):
+                            print('aaaa')
+                            # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
                     
                     if 'lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
@@ -60,6 +64,17 @@ class Setor(Server):
             
             self._server.on_message = on_message
             self._server.loop_start()
+ 
+    # ajustar ----------------------------------
+    def gerenciarCaminhao(self, msg: dict):
+        """Gerencia as mensagens recebidas do topico caminhao/
+
+        Args:
+            msg (dict): mensagem recebido do caminhao
+        """
+        if msg.get('acao') != '' and msg.get('acao') != None:
+            mensagem = {'acao': 'esvaziar'}
+            self.enviarDados('setor/caminhao/'+msg.get('acao'), mensagem)
                    
     def gerenciarLixeiras(self, msg):
         """Gerencia as mensagens recebidas  das lixeiras
@@ -101,7 +116,40 @@ class Setor(Server):
                 # print('Pedido negado')
                 # msg = {'dados': {'lixeiras': [], 'lixeiras_coletar': [], 'setor': self.dadosSetor() } }
                 # self.enviarDados(self._server_id+'/update/', msg)
-            
+    
+    
+    
+    # ajustar --------------------------------
+    def gerenciarSetor(self, msg: dict):
+        """Gerencia as mensagens recebidas do setor
+
+        Args:
+            msg (dict): mensagem recebido do setor
+        """
+        if msg.get('dados') != '' or msg.get('dados') != None:
+            id =  msg.get('dados').get('setor').get('id')
+            if id not in self._setores_inscritos:
+                self._setores_inscritos[id] = msg.get('dados').get('setor')
+            else:
+                if msg.get('dados').get('lixeiras') != self.__lixeiras.get(id):
+                    self.__lixeiras[id] = msg.get('dados').get('lixeiras')
+                    self.enviarDadosAdm()
+                if msg.get('dados').get('lixeiras_coletar') != self.__lixeiras_coletar.get(id):
+                    self.__lixeiras_coletar[id] = msg.get('dados').get('lixeiras_coletar')
+                    self.enviarDadosCaminhao()
+            print("Lixeiras a coletar ---> ", self.__lixeiras_coletar)
+      
+    # ajustar -------------------------------------------------
+    def enviarDadosCaminhao(self):
+        """Envia as lixeiras a serem coletada para o tópico caminhao/
+        """
+        coletar = [lixeira for lixeiras_setor in self.__lixeiras_coletar.values() for lixeira in lixeiras_setor]
+        if len(coletar):
+            coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
+            mensagemCaminhao = {'dados': coletar}
+            self.enviarDados('setor/caminhao/listaColeta', mensagemCaminhao)
+          
+    # ajustar -------------------------------------------------
     def enviarDadosServidor(self):
         """Envia informacoes de todas as para o topico do setor/
         """
@@ -157,7 +205,28 @@ class Setor(Server):
             return True
         else:
             return False
-        
+       
+    # ajustar ------------------------------------------------- 
+    def maisProximo(self, posicao: tuple[int, int], elementos: list[dict]):
+        """Seleciona o elemento mais proximo em relacao a uma linha reta
+
+        Args:
+            posicao (tuple[int, int]): localizacao do elemento a ser analizado
+            elementos (list[dict]): lista de elementos a serem comparados
+
+        Returns:
+            mais_prox: elemento mais proximo
+        """
+        mais_prox = elementos[0] #tomandoo mais proximo como o primeiro elemento
+
+        for e in elementos:    
+            b = (e['latitude'], e['longitude'])
+            c = (mais_prox['latitude'], mais_prox['latitude'])
+            
+            if (dist(posicao, b) < dist(posicao, c)):
+                mais_prox = e
+                
+        return mais_prox
     
     def run(self):
         super().run()

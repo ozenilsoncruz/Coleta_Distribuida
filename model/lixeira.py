@@ -14,11 +14,9 @@ class Lixeira(Cliente):
         self.__lixo = 0
         self.__porcentagem = 0
         self._msg['acao'] = 'iniciar'
-        print('setor/caminhao/'+self._client_id)
         
     def dadosLixeira(self):
         """Informacoes da lixeira
-
         Returns:
             dict: informacoes da lixeira
         """
@@ -97,17 +95,11 @@ class Lixeira(Cliente):
             print(f"Lixeira Cheia! Impossível desbloquear Lixeira {self._client_id}")
     
     def generateRandomData(self):
-        # options = {1: 'add', 2:'bloquear', 3:'desbloquear'}
+        """Gera lixos em quantidades aleatorias
+        """
         while self.__bloqueado == False:
-            sleep(2)
-            option = randint(1,3)
-            
-            if option == 1: self.addLixo(1)
-            elif option == 2: self.bloquear()
-            elif option == 3: self.desbloquear()
-            
-            option = 0
-            sleep(3)
+            sleep(5)
+            self.addLixo(randint(1,100))
     
     def receberDados(self):
         """Recebe a mensagem do servidor e realiza ações
@@ -143,29 +135,24 @@ class Lixeira(Cliente):
                 print("Erro ao receber dados => ", ex)
                 break
 
+    def run(self):
+        super().run()
+        Thread(target=self.generateRandomData).start()
 
 
-def geradorLixeiras(velocicdade_gerarLixeira: int = 5, velocidade_gerar_addLixo: int = 5)-> Lixeira:
+def geradorLixeiras(qtd_lixeiras: int = 5,
+                    velocicdade_gerarLixeira: int = 5)-> Lixeira:
     """Gera lixeiras com quantidades de lixo geradas de forma aleatoria
-
     Args:
         velocicdade_gerarLixeira (int): velocidade em segundos que a lixeira sera criada
             5 por padrao.
         velocidade_gerar_addLixo (int): velocidade em segundos que o lixo sera adicionado. 
             5 por padrao.
     """
-    sleep(velocicdade_gerarLixeira)
-    l = Lixeira(latitude=randint(1, 2000), longitude=randint(1, 2000))
-    l.run()
-    sleep(velocidade_gerar_addLixo)
-    l.addLixo(randint(1, 100))
-    return l
-
-lixeira = Lixeira(1, 4)
-lixeira.run()
-
-sleep(15)
-
-lixeira.addLixo(100)
-# while True:
-#     l = geradorLixeiras()
+    lixeiras = []
+    for i in range (qtd_lixeiras):
+        sleep(velocicdade_gerarLixeira)
+        lixeiras.append(Lixeira(latitude=randint(1, 2000), longitude=randint(1, 2000)))
+        lixeiras[i].run()
+    
+geradorLixeiras()

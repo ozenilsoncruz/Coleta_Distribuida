@@ -19,7 +19,6 @@ class Cliente:
     
     def connect_mqtt(self) -> Client:
         """Conecta o servidor mqtt, publica e se inscreve nos topicos iniciais
-
         Returns:
             Client: Cliente MQTT
         """
@@ -52,11 +51,9 @@ class Cliente:
     
     def enviarDadosTopic(self, topic):
         """Envia mensagens no formato json para determinado topico
-
         Args:
             topic (str): topico de destino
             msg (dict): mensagem a convertida em json e enviada
-
         Raises:
             Exception: Retorna um erro para o caso do envio falhar
         """
@@ -88,4 +85,3 @@ class Cliente:
         """
         self._client_mqtt = self.connect_mqtt()
         Thread(target=self.receberDados).start()
-        
