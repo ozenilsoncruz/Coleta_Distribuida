@@ -139,7 +139,6 @@ class Lixeira(Cliente):
         super().run()
         Thread(target=self.generateRandomData).start()
 
-
 def geradorLixeiras(qtd_lixeiras: int = 5,
                     velocicdade_gerarLixeira: int = 5)-> Lixeira:
     """Gera lixeiras com quantidades de lixo geradas de forma aleatoria

@@ -14,12 +14,11 @@ class Setor(Server):
     
     def __init__(self, latitude: int, longitude: int):
         self._server_id = 'setor/'+"".join(choice(string.ascii_uppercase + string.digits) for _ in range(4))
-        Server.__init__(self, self._server_id, [f'{self._server_id}/lixeira/']) #observar qual o erro
+        Server.__init__(self, self._server_id, [f'{self._server_id}/lixeira/', 'setor/']) #observar qual o erro
         self.__latitude = latitude
         self.__longitude = longitude
         self.__lixeiras_coletar = []
         self.__lixeiras = []
-        self.__caminhao = Caminhao(latitude, longitude)
     
     def receberDados(self):
         """Recebe e gerencia as mensagens dos topicos para o qual o setor foi inscrito
@@ -33,7 +32,7 @@ class Setor(Server):
                 if mensagem:
                     mensagem = json.loads(mensagem)
                     
-                    if 'setor' in msg.topic:
+                    if 'setor' in msg.topic and self._server_id not in msg.topic:
                         if 'REQUEST' in mensagem.get('acao'):
                             print('000000000000000000000000000',msg.topic,mensagem)
                             
@@ -262,6 +261,4 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
     return list(setores.values())
 
 lista_setores = geradorSetores()
-
-print(lista_setores[0].dadosSetor())
 lista_setores[0].run()
