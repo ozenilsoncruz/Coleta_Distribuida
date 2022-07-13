@@ -29,6 +29,29 @@ class Setor(Server):
                 mensagem = msg.payload
                 if mensagem:
                     mensagem = json.loads(mensagem)
+                    
+                    if 'REQUEST' in mensagem.get('acao'):
+                        print('000000000000000000000000000',msg.topic,mensagem)
+                        
+                        # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
+                        if float(mensagem.get('timestamp')) > self.timestamp and self.isRequesting == False:
+                            msg = {'acao':'REPLY', 'timestamp': self.timestamp, 'setor':self._server_id }
+                            self.enviarDados(self._server_id+'/timestamp/', msg)                              # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS
+                            
+                        # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
+                        else:
+                            msg = {'acao':'DENIED', 'timestamp': self.timestamp, 'setor':self._server_id }
+                            self.enviarDados(self._server_id+'/timestamp/', msg)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
+                    
+                    if 'REPLY' in mensagem.get('acao'):
+                        # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
+                        # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
+                        Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
+                    
+                    if 'DENIED' in mensagem.get('acao'):
+                        print('aaaa')
+                        # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
+                    
                     if 'lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
                     else:
@@ -44,7 +67,10 @@ class Setor(Server):
         Args:
             msg (dict): mensagem recebida de uma determinada lixeira
         """
-        if 'dados' in msg:     
+        if 'dados' in msg:
+            
+            # if self.exclusaoMutua() == True:
+                
             lixeirasId = self.__separaIds(self.__lixeiras)
             lixeirasColetarId = self.__separaIds(self.__lixeiras_coletar)
             #se as lixeira nao estiver na lista de lixeras, ela sera adicionada, se estiver tera seu dados atualizado
@@ -69,6 +95,12 @@ class Setor(Server):
             print("\n\n\nLixeiras:    ", self.__lixeiras)
             print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
             self.enviarDadosServidor()
+            
+            # else:
+                # print('Eita, espera sua vez vei!')
+                # print('Pedido negado')
+                # msg = {'dados': {'lixeiras': [], 'lixeiras_coletar': [], 'setor': self.dadosSetor() } }
+                # self.enviarDados(self._server_id+'/update/', msg)
             
     def enviarDadosServidor(self):
         """Envia informacoes de todas as para o topico do setor/
@@ -95,17 +127,38 @@ class Setor(Server):
         return lista
     
     def dadosSetor(self):
-        """Informacoes da lixeira
+        """Informacoes do setor
 
         Returns:
-            dict: informacoes da lixeira
+            dict: informacoes do setor
         """
         return {
             "id": self._server_id,
             "latitude": self.__latitude, 
-            "longitude": self.__longitude
+            "longitude": self.__longitude,
+            "timestamp": self.timestamp
         }
-     
+    
+    def exclusaoMutua(self, setoresTimestamps = {}):
+        """
+           setoresTimestamps : DICIONARIO DE TIMESTAMPS DE SETORES, NECESSARIO ADAPTAR PARA PEGAR SOMENTE OS TIMESTAMPS
+        """
+        # ENVIAR SELF.TIMESTAMP PARA TODOS OS DEMAIS SETORES, 
+        # O SETOR RECEPTOR RETORNA TRUE SE:
+            # SEU TIMESTAMP FOR MAIOR QUE O DO SOLICITANTE
+            # E 
+            # SE SELF.ISREQUESTING FOR FALSE
+        # SE ALGUM SETOR RECEPTOR RETORNAR FALSE, NÃO DEVE EXECUTAR
+        # SE TODOS FOREM TRUE, PODE EXECUTAR
+        
+        menorTimestamp = min(data[0] for data in setoresTimestamps.values())        # PEGA O MENOR TIMESTAMP DO DICIONARIO DE TIMESTAMPS DE TODOS OS SETORES
+        
+        if self.timestamp <= menorTimestamp:
+            return True
+        else:
+            return False
+        
+    
     def run(self):
         super().run()
         self._server.subscribe(self._server_id)

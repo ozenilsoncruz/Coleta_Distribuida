@@ -1,5 +1,7 @@
 import json
+from pickle import FALSE
 from threading import Thread
+from datetime import datetime
 
 from paho.mqtt.client import Client
 
@@ -7,12 +9,17 @@ from paho.mqtt.client import Client
 class Server():
     
     def __init__(self, topic: str, topics: list = []):
-        self._broker = 'test.mosquitto.org'
+        self._broker = 'broker.emqx.io'
         self._port = 1883
         self._server_id = topic
         self._topics = topics
-        self._server = Client(self._server_id) 
-        
+        self._server = Client(self._server_id)
+        self.timestamp = datetime.now().timestamp()
+        self.isRequesting = False
+    
+    def getTimestamp(self):
+        return self.timestamp
+    
     def connect_mqtt(self) -> Client:
         """Conecta o servidor mqtt, publica e se inscreve nos topicos iniciais
 
