@@ -4,11 +4,9 @@ from random import randint, choice
 import string
 from threading import Thread
 from paho.mqtt.publish import single
-from model.caminhao import Caminhao
-
+from caminhao import Caminhao
 from server import Server
-
-
+from flask import Flask
 
 class Setor(Server):
     
@@ -20,6 +18,7 @@ class Setor(Server):
         self.__lixeiras_coletar = []
         self.__lixeiras = []
         self.__setores = {}
+        self.caminhao = Caminhao(latitude, longitude, self._server_id)
     
     def receberDados(self):
         """Recebe e gerencia as mensagens dos topicos para o qual o setor foi inscrito
@@ -33,7 +32,7 @@ class Setor(Server):
                 if mensagem:
                     mensagem = json.loads(mensagem)
                     
-                    if 'setor' in msg.topic and self._server_id not in msg.topic:
+                    if 'setor' in msg.topic and 'lixeira' not in msg.topic and self._server_id not in msg.topic:
                         Thread(target=self.gerenciarSetor, args=(mensagem, )).start()
                     if self._server_id == msg.topic:
                         pass
@@ -112,15 +111,18 @@ class Setor(Server):
             msg (dict): mensagem recebido do setor
         """
         if msg.get('dados') != '' or msg.get('dados') != None:
+            print('1111111111111', msg)
             id =  msg.get('dados').get('setor').get('id')
             self.__setores[id] = msg.get('dados').get('setor')
             
             if 'REQUEST' in msg.get('dados').get('acao'):
                 print('000000000000000000000000000', msg.topic, msg)
-                mensagem = {'dados': {'acao': '', 'setor': msg.get('dados').get('setor')}}        
+                mensagem = {'dados': {'acao': '', 'setor': msg.get('dados').get('setor')}}       
+                 
                 # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
-                if float(msg.get('dados').get('timestamp')) > self.timestamp and self.isRequesting == False:
+                if float(msg.get('dados').get('timestamp')) < self.timestamp and self.isRequesting == False:
                     mensagem['dados']['acao']= 'REPLY'                           # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS    
+                    
                 # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
                 else:
                     mensagem['dados']['acao']= 'DENIED'
@@ -137,7 +139,7 @@ class Setor(Server):
                 # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
                 #Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
             if len(self.__setores.values()) == 3:
-                self.exclusaoMutua(self.__setores.values())
+                self.exclusaoMutua(self.__setores)
                 pass
             
         if 'DENIED' in msg.get('dados').get('acao'):
@@ -160,7 +162,7 @@ class Setor(Server):
         """
         msg = {'dados': {'acao': acao,
                          'setor': self.dadosSetor()
-                         }
+                        }
                }
         self.enviarDados(self._server_id, msg)
    
@@ -186,6 +188,8 @@ class Setor(Server):
         """
         return {
             "id": self._server_id,
+            "latitude": self.__latitude,
+            "longitude": self.__longitude,
             "timestamp": self.timestamp
         }
     
@@ -264,4 +268,41 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
     return list(setores.values())
 
 lista_setores = geradorSetores()
+caminhao = lista_setores[0].caminhao
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return 'Tudo certo por aqui!'
+
+# ########## ROTAS LIXEIRA ##########
+@app.route('/lixeiras/<number>', methods=['GET'])
+def getLixeirasByNumber(number: int):
+    try:
+        # lixeiras = adm.getLixeirasByNumber(number)
+        caminhao._msg = {'dados': {'acao': 'REQUEST', 'setor': f'{caminhao.getSetor()}' }}
+        caminhao.enviarDadosTopic('setor/'+caminhao.getSetor())                    # SOLICITA PRA SEU SETOR
+        number = int(number)
+        
+        lixos = caminhao.getLixeirasColetar()
+        
+        if  number >= 0 and number <= len(lixos):
+            return lixos[:number]
+
+        return str(lixos)
+    
+    except Exception as ex:
+        return f"Erro: {ex}"
+
+@app.route('/lixeira/<id>', methods=['GET'])
+def getLixeiraByID(id):
+    try:
+        # lixeiras = adm.getLixeiraByID(id)
+        return str(id)
+    except Exception as ex:
+        return f"Erro: {ex}"
+# ########## ROTAS LIXEIRA ##########
+
+app.run()
 lista_setores[0].run()

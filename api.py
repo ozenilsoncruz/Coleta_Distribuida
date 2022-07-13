@@ -1,5 +1,5 @@
 from flask import Flask, render_template
-from model.adm import Adm
+from src.adm import Adm
 
 app = Flask(__name__)
 app.config['DEBUG'] = True

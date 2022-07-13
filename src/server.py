@@ -1,5 +1,4 @@
 import json
-from pickle import FALSE
 from threading import Thread
 from datetime import datetime
 

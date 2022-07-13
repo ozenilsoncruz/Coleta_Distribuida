@@ -7,7 +7,7 @@ from server import Server
 _TOPIC = ["setor/+/update/", "caminhao/", "adm/", "lixeira/"]
 
 
-class SetorPrincial(Server):
+class SetorPrincipal(Server):
     
     def __init__(self):
         self._server_id = 'setor/'
@@ -125,4 +125,4 @@ class SetorPrincial(Server):
                 
         return mais_prox
 
-SetorPrincial().run()
+SetorPrincipal().run()

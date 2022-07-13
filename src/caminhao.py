@@ -1,16 +1,21 @@
 from time import sleep
-
 from client import Cliente
-
 
 class Caminhao(Cliente):
 
-    def __init__(self, latitude, longitude):
+    def __init__(self, latitude, longitude, setor):
         self.__latitude = latitude
         self.__longitude = longitude
         self.__capacidade = 10000 #m³
+        self.__setor = setor
         self.__lixeiras_coletar = []
         Cliente.__init__(self, "caminhao", "setor")
+    
+    def getSetor(self):
+        return self.__setor
+    
+    def getLixeirasColetar(self):
+        return self.__lixeiras_coletar
     
     def dadosCaminhao(self) -> dict:
         """Informacoes da lixeira
@@ -47,7 +52,7 @@ class Caminhao(Cliente):
         self.__latitude = lixeira.get('longetude')
         self._msg['acao'] = ''
         self.enviarDadosTopic('caminhao/')
-        
+    
     def receberDados(self):
         """Recebe a mensagem do servidor e realiza ações
         """
@@ -66,5 +71,3 @@ class Caminhao(Cliente):
         """
         super().run()
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
-
-Caminhao(12, 25).run()

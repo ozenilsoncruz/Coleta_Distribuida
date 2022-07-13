@@ -1,4 +1,4 @@
-from model.client import Cliente
+from src.client import Cliente
 
 
 class Adm(Cliente):
