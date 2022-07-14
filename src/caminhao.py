@@ -94,7 +94,7 @@ class Caminhao(Cliente):
                 lixeira a ser esvaziada
         """ 
         
-        print('entrei aqui -------------------->', self.__lixeiras_coletar)
+        # print('entrei aqui -------------------->', self.__lixeiras_coletar)
         for lixeira in self.__lixeiras_coletar:            
             print(f"O Caminhão {self._client_id} está coletando a lixeira {lixeira['id']}")
             
@@ -128,7 +128,7 @@ class Caminhao(Cliente):
             if self._msg.get('dados') != None and self._msg.get('dados') != '' and self._msg.get('dados').get('lixeiras') != None and self._msg.get('dados').get('lixeiras') != '':
                 self.__lixeiras_coletar = self._msg.get('dados').get('lixeiras')
                 if self.__lixeiras_coletar != None and len(self.__lixeiras_coletar) > 0:
-                    print('olá mundo')
+                    # print('olá mundo')
                     self.coletarLixeira()
             if len(self.__lixeiras_coletar) == 0:
                 self.enviarDadosSetor()

@@ -104,7 +104,7 @@ class Setor(Server):
                     
             else:
                 if msg['dados']['id'] in lixeirasColetarId:
-                    print('entrei aqui mané', lixeirasColetarId.index(msg['dados']['id']))
+                    # print('entrei aqui mané', lixeirasColetarId.index(msg['dados']['id']))
                     self.__lixeiras_coletar.pop(lixeirasColetarId.index(msg['dados']['id']))
             print("\n\n\nLixeiras:    ", self.__lixeiras)
             print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
@@ -120,7 +120,7 @@ class Setor(Server):
             id =  msg.get('dados').get('id')
             if msg.get('dados').get('lixeirasCriticas') != self.__lixeiras_setor.get(id):
                 self.__lixeiras_setor[id] = msg.get('dados').get('lixeirasCriticas')
-                print('Entrar aqui não deu nenhum problema', msg)
+                # print('Entrar aqui não deu nenhum problema', msg)
             if 'REQUEST' in msg.get('acao').get('permissao'):
                 print('\n\nSetor ', msg.get('dados').get('id'), ' deseja realizar uma requisição...\n\n')
                 mensagem = {'dados': {'acao': {'permissao': '', 
@@ -165,7 +165,7 @@ class Setor(Server):
     def enviarDadosCaminhao(self):
         """Envia as lixeiras a serem coletada para o tópico caminhao/
         """
-        print('entrei aqui- aiiahfieie oq')
+        # print('entrei aqui- aiiahfieie oq')
         coletar = [l for l in self.__lixeiras_coletar]
         if len(coletar):
             coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
