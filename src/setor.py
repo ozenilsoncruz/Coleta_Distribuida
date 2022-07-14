@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 from math import dist
+from os import remove
 from random import randint, choice
 import string
 from threading import Thread
@@ -54,8 +55,10 @@ class Setor(Server):
         """
         if msg.get('acao') != '' and msg.get('acao') != None:
             if 'REQUEST' in msg.get('acao'):
-                
-                pass
+                if len(self.__lixeiras_coletar) < 5:
+                    self.solicitarLixeira()
+                else:
+                    pass
             
             mensagem = {'acao': 'esvaziar'}
             self.enviarDados('setor/caminhao/'+msg.get('acao'), mensagem)
@@ -82,6 +85,11 @@ class Setor(Server):
             #verifica se a lixeira ja esta em estado critico
             if float(msg.get('dados').get('porcentagem')[:3]) >= 75:
                 print(f'LIXEIRA {msg["dados"]["id"]} ESTÁ EM ESTADO CRÍTICO!')
+                
+                #reservando lixeira
+                mensagem = {'acao': 'reservar'}
+                self.enviarDados('lixeira/'+msg.get('dados').get('id'), mensagem)
+                   
                 if msg['dados']['id'] not in lixeirasColetarId:
                         self.__lixeiras_coletar.append(msg.get('dados'))
                 else:
@@ -93,16 +101,7 @@ class Setor(Server):
                     self.__lixeiras_coletar.pop(lixeirasColetarId.index(msg['dados']['id']))
             print("\n\n\nLixeiras:    ", self.__lixeiras)
             print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
-            self.enviarDadosServidor()
-            
-            # else:
-                # print('Eita, espera sua vez vei!')
-                # print('Pedido negado')
-                # msg = {'dados': {'lixeiras': [], 'lixeiras_coletar': [], 'setor': self.dadosSetor() } }
-                # self.enviarDados(self._server_id+'/update/', msg)
-    
-    
-    
+            self.enviarDadosServidor()    
 
     def gerenciarSetor(self, msg: dict):
         """Gerencia as mensagens recebidas do setor
@@ -142,34 +141,28 @@ class Setor(Server):
             id =  msg.get('dados').get('id')
             # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
             if len(self.__setores.keys()) == 3:
-                self.__lixeiras_coletar.append(self.__lixeira_solicitada)
-        
+                print('\n\nReservando lixeira de outro setor...\n\n')
+                #reservando lixeira
+                mensagem = {'acao': 'reservar'}
+                self.enviarDados('lixeira/'+msg.get('dados').get('id'), mensagem)
+                
+                self.__lixeiras_coletar.append(self.__lixeira_solicitada) 
+                self.solicitarLixeira()
+                self.__setores.clear()
         #se a permisssao da lixera em questao for negada, uma nova solicitacao para outra lixeira sera realizada
         if 'DENIED' in msg.get('dados').get('acao').get('permissao'):
-            if len(self.__lixeiras_coletar) <= 4:
-                auxiliar = []
-                coletar = [lixeira for lixeiras_setor in self.__lixeiras_setor.values() for lixeira in lixeiras_setor]
-                if len(coletar):
-                    coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
-                    for l in coletar:
-                        if l != self.__lixeira_solicitada:
-                            auxiliar = l
-                            break
-                self.__lixeira_solicitada = auxiliar
-                self.timestamp = datetime.now().timestamp()
-                self.enviarDadosServidor(permissao='REQUEST', objeto=self.__lixeira_solicitada)
+            self.solicitarLixeira()
       
     # ajustar -------------------------------------------------
     def enviarDadosCaminhao(self):
         """Envia as lixeiras a serem coletada para o tópico caminhao/
         """
-        coletar = [lixeira for lixeiras_setor in self.__lixeiras_coletar.values() for lixeira in lixeiras_setor]
+        coletar = [l for l in self.__lixeiras_coletar]
         if len(coletar):
             coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
             mensagemCaminhao = {'dados': coletar}
             self.enviarDados('setor/caminhao/listaColeta', mensagemCaminhao)
           
-    # ajustar -------------------------------------------------
     def enviarDadosServidor(self, permissao: str = '', objeto: dict = {}):
         """Envia informacoes de todas as para o topico do setor/
         """
@@ -178,7 +171,7 @@ class Setor(Server):
                      'objeto': objeto},
             'dados': self.dadosSetor()      
         }
-        self.enviarDados(self._server_id, msg)
+        self.enviarDados('setor/', msg)
    
     def __separaIds(self, lixeiras: list) -> list:
         """Organiza a ordem de coleta por parte do adm
@@ -227,7 +220,6 @@ class Setor(Server):
         else:
             return False
         
-    # ajustar ------------------------------------------------- 
     def maisProximo(self, posicao: tuple[int, int], elementos: list[dict]):
         """Seleciona o elemento mais proximo considerando a distancia euclidiana
 
@@ -253,7 +245,21 @@ class Setor(Server):
         super().run()
         self._server.subscribe(self._server_id)
         
-        
+    def solicitarLixeira(self):
+        """Solicita uma lixeira para todos os setores
+        """
+        if len(self.__lixeiras_coletar) <= 4:
+            auxiliar = []
+            coletar = [lixeira for lixeiras_setor in self.__lixeiras_setor.values() for lixeira in lixeiras_setor]
+            if len(coletar):
+                coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
+                for l in coletar:
+                    if l != self.__lixeira_solicitada:
+                        auxiliar = l
+                        break
+            self.__lixeira_solicitada = auxiliar
+            self.timestamp = datetime.now().timestamp()
+            self.enviarDadosServidor(permissao='REQUEST', objeto=self.__lixeira_solicitada)
      
 def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
     """Gera setores com diferentes posicoes
