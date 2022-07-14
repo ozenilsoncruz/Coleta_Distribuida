@@ -142,24 +142,24 @@ app.config['DEBUG'] = True
 def index():
     return 'Tudo ok'
 
+######### ROTAS LIXEIRA ##########
+@app.route('Caminhao/<idCaminhao>/lixeiras/<number>', methods=['GET'])
+def getLixeirasByNumber(idCaminhao: int,number: int):
+    try:
+        c = listaCaminhoes[idCaminhao-1]
+        lixeiras = c.getLixeirasByNumber(number)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
+
+@app.route('Caminhao/<idCaminhao>/lixeira/<id>', methods=['GET'])
+def getLixeiraByID(idCaminhao: int, id):
+    try:
+        c = listaCaminhoes[idCaminhao-1]
+        lixeiras = c.getLixeiraByID(id)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
 ########## ROTAS LIXEIRA ##########
-# @app.route('Caminhao/<idCaminhao>/lixeiras/<number>', methods=['GET'])
-# def getLixeirasByNumber(idCaminhao: int,number: int):
-#     try:
-#         c = listaCaminhoes[idCaminhao-1]
-#         lixeiras = c.getLixeirasByNumber(number)
-#         return str(lixeiras)
-#     except Exception as ex:
-#         return f"Erro: {ex}"
 
-# @app.route('Caminhao/<idCaminhao>/lixeira/<id>', methods=['GET'])
-# def getLixeiraByID(idCaminhao: int, id):
-#     try:
-#         c = listaCaminhoes[idCaminhao-1]
-#         lixeiras = c.getLixeiraByID(id)
-#         return str(lixeiras)
-#     except Exception as ex:
-#         return f"Erro: {ex}"
-# ########## ROTAS LIXEIRA ##########
-
-# app.run()
+app.run()
