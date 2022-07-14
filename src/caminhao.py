@@ -105,6 +105,13 @@ class Caminhao(Cliente):
         """"Metodo que inicia o servidor MQTT
         """
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
+        msg = {
+            'acao': 'REQUEST',
+            'dados': self.dadosCaminhao()
+        }
+        idSetor = self._client_id.split('/')
+        idSetor = idSetor[1]
+        self.enviarDados(f'setor/{idSetor}/{self._client_id}', msg)
  
 listaCaminhoes = []        
 for i in range (4):    
