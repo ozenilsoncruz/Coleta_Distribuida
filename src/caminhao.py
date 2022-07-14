@@ -71,21 +71,6 @@ class Caminhao(Cliente):
         idSetor = self._client_id.split('/')
         idSetor = idSetor[1]
         self.enviarDadosTopic(f'setor/{idSetor}/{self._client_id}')
-        # try:
-        #     msg= {
-        #         'acao': 'REQUEST',
-        #         'dados': {'caminhao':self.dadosCaminhao()}
-        #         }
-        #     idSetor = self._client_id.split('/')
-        #     idSetor = idSetor[1]
-            
-        #     msg = json.dumps(self._msg).encode("utf-8")
-        #     print(msg)
-        #     result = self._client_mqtt.publish(f'setor/{idSetor}/{self._client_id}', msg)
-        #     if result[0] != 0:
-        #         raise Exception("Mensagem não enviada para o topico "+"'"+f'setor/{idSetor}/{self._client_id}'+"'")
-        # except Exception as ex:
-        #     print(ex)
         
     def coletarLixeira(self):
         """
@@ -93,8 +78,6 @@ class Caminhao(Cliente):
             @param lixeira: Lixera
                 lixeira a ser esvaziada
         """ 
-        
-        print('entrei aqui -------------------->', self.__lixeiras_coletar)
         for lixeira in self.__lixeiras_coletar:            
             print(f"O Caminhão {self._client_id} está coletando a lixeira {lixeira['id']}")
             
@@ -123,19 +106,18 @@ class Caminhao(Cliente):
         """Recebe a mensagem do servidor e realiza ações
         """
         while True:
-            # try:
-            super().receberDados()
-            if self._msg.get('dados') != None and self._msg.get('dados') != '' and self._msg.get('dados').get('lixeiras') != None and self._msg.get('dados').get('lixeiras') != '':
-                self.__lixeiras_coletar = self._msg.get('dados').get('lixeiras')
-                if self.__lixeiras_coletar != None and len(self.__lixeiras_coletar) > 0:
-                    print('olá mundo')
-                    self.coletarLixeira()
-            if len(self.__lixeiras_coletar) == 0:
-                self.enviarDadosSetor()
+            try:
+                super().receberDados()
+                if self._msg.get('dados') != None and self._msg.get('dados') != '' and self._msg.get('dados').get('lixeiras') != None and self._msg.get('dados').get('lixeiras') != '':
+                    self.__lixeiras_coletar = self._msg.get('dados').get('lixeiras')
+                    if self.__lixeiras_coletar != None and len(self.__lixeiras_coletar) > 0:
+                        self.coletarLixeira()
+                if len(self.__lixeiras_coletar) == 0:
+                    self.enviarDadosSetor()
                     
-            # except Exception as ex:
-            #     print("Erro ao receber dados => ", ex)
-            #     break
+            except Exception as ex:
+                print("Erro ao receber dados => ", ex)
+                break
             
     def run(self):
         """"Metodo que inicia o servidor MQTT
