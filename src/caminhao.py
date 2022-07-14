@@ -89,9 +89,12 @@ class Caminhao(Cliente):
         while True:
             try:
                 super().receberDados()
-                self.__lixeiras_coletar = self._msg.get('dados')
-                if len(self.__lixeiras_coletar) > 0:
-                    self.coletarLixeira()
+                if self._msg.get('dados') != '' and self._msg.get('dados') != None:
+                    self.__lixeiras_coletar = self._msg.get('dados')
+                    
+                    if len(self.__lixeiras_coletar) > 0:
+                        self.coletarLixeira()
+                    
             except Exception as ex:
                 print("Erro ao receber dados => ", ex)
                 break
@@ -101,39 +104,35 @@ class Caminhao(Cliente):
         """
         #self.iniciar_API(self.__latitude)
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
-        super().run()
-        #self.iniciar_API(self.__latitude)
-
-    def iniciar_API(self, port):
-        print('entrei aqui')
-        app = Flask(__name__)
-        app.config['DEBUG'] = True
-
-        @app.route('/')
-        def index():
-            return 'Tudo ok'
-
-        ########## ROTAS LIXEIRA ##########
-        @app.route('/lixeiras/<number>', methods=['GET'])
-        def getLixeirasByNumber(number: int):
-            try:
-                lixeiras = self.getLixeirasByNumber(number)
-                return str(lixeiras)
-            except Exception as ex:
-                return f"Erro: {ex}"
-
-        @app.route('/lixeira/<id>', methods=['GET'])
-        def getLixeiraByID(id):
-            try:
-                lixeiras = self.getLixeiraByID(id)
-                return str(lixeiras)
-            except Exception as ex:
-                return f"Erro: {ex}"
-        ########## ROTAS LIXEIRA ##########
-
-        app.run(port =port)
+        # Thread(target=self.iniciar_API, args=(self.__latitude, )).start()
         
-c = Caminhao(5005, 5006)
+        
+c = Caminhao(5000, 5001)
 c.run()
-c2 = Caminhao(5002, 5003)
-c2.run()
+
+app = Flask(__name__)
+app.config['DEBUG'] = True
+
+@app.route('/')
+def index():
+    return 'Tudo ok'
+
+########## ROTAS LIXEIRA ##########
+@app.route('/lixeiras/<number>', methods=['GET'])
+def getLixeirasByNumber(number: int):
+    try:
+        lixeiras = c.getLixeirasByNumber(number)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
+
+@app.route('/lixeira/<id>', methods=['GET'])
+def getLixeiraByID(id):
+    try:
+        lixeiras = c.getLixeiraByID(id)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
+########## ROTAS LIXEIRA ##########
+
+app.run()
