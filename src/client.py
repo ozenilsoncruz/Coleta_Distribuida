@@ -60,8 +60,8 @@ class Cliente:
         try:
             msg = json.dumps(self._msg).encode("utf-8")
             result = self._client_mqtt.publish(topic, msg)
-            if result[0] != 0:
-                raise Exception("Mensagem não enviada para o topico "+"'"+topic+"'")
+            # if result[0] != 0:
+            #     raise Exception("Mensagem não enviada para o topico "+"'"+topic+"'")
         except Exception as ex:
             print(ex)
             

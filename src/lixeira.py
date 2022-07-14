@@ -145,8 +145,8 @@ class Lixeira(Cliente):
         super().run()
         Thread(target=self.generateRandomData).start()
 
-def geradorLixeiras(qtd_lixeiras: int = 5,
-                    velocicdade_gerarLixeira: int = 5)-> Lixeira:
+def geradorLixeiras(qtd_lixeiras: int = 20,
+                    velocicdade_gerarLixeira: int = 2)-> Lixeira:
     """Gera lixeiras com quantidades de lixo geradas de forma aleatoria
     Args:
         velocicdade_gerarLixeira (int): velocidade em segundos que a lixeira sera criada
@@ -155,9 +155,12 @@ def geradorLixeiras(qtd_lixeiras: int = 5,
             5 por padrao.
     """
     lixeiras = []
+    id = 0
     for i in range (qtd_lixeiras):
         sleep(velocicdade_gerarLixeira)
-        lixeiras.append(Lixeira(id=i, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=1))
+        if i%5 == 0:
+            id = int(i/5)
+        lixeiras.append(Lixeira(id=i, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=id+1))
         lixeiras[i].run()
    
 geradorLixeiras() 

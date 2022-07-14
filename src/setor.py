@@ -298,9 +298,6 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
         i -= 1
     return list(setores.values())
 
-s = Setor(1, 10, 20)
-s.run()
-
 listaSetores = []        
 for i in range (4):    
     listaSetores.append(Setor(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
