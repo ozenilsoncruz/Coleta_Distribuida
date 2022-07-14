@@ -1,3 +1,4 @@
+from threading import Thread
 from time import sleep
 from client import Cliente
 from flask import Flask, render_template
@@ -18,7 +19,7 @@ class Caminhao(Cliente):
         Resturns:
             list: lista de lixeiras
         """
-        return self.__lixeiras
+        return self.__lixeiras_coletar
    
     def getLixeirasByNumber(self, number: int) -> list:
         """Retorna a quantidade de lixeiras exigida
@@ -29,9 +30,9 @@ class Caminhao(Cliente):
         """
         number = int(number)
         # after subscribed, retrieve data from topic /lixeiras and limit by number
-        if  number >= 0 and number <= len(self.__lixeiras):
-            return self.__lixeiras[:number]
-        return self.__lixeiras
+        if  number >= 0 and number <= len(self.__lixeiras_coletar):
+            return self.__lixeiras_coletar[:number]
+        return self.__lixeiras_coletar
     
     def getLixeiraByID(self, id: str) -> dict:
         """Busca uma lixera pelo id
@@ -41,7 +42,7 @@ class Caminhao(Cliente):
             dict: dicionario contendo as informacoes de determinada lixeira 
         """
         # after subscribed, retrieve data from topic /lixeiras/id and return
-        for l in self.__lixeiras:
+        for l in self.__lixeiras_coletar:
             if id in l['id']:
                 return l
         return {}
@@ -100,14 +101,15 @@ class Caminhao(Cliente):
         """
         super().run()
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
+        # Thread(target=self.iniciar_API, args=(self.__latitude, )).start()
 
-    def iniciar_API(self):
+    def iniciar_API(self, port):
         app = Flask(__name__)
         app.config['DEBUG'] = True
 
         @app.route('/')
         def index():
-            return render_template('index.html')
+            return 'Tudo ok'
 
         ########## ROTAS LIXEIRA ##########
         @app.route('/lixeiras/<number>', methods=['GET'])
@@ -127,8 +129,7 @@ class Caminhao(Cliente):
                 return f"Erro: {ex}"
         ########## ROTAS LIXEIRA ##########
 
-        app.run()
+        app.run(port =port)
         
-c = Caminhao(10, 20)
-
-c.iniciar_API()
+c = Caminhao(5000, 5001)
+c2 = Caminhao(5002, 5003)

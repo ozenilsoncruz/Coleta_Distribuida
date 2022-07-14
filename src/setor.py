@@ -4,9 +4,7 @@ from random import randint, choice
 import string
 from threading import Thread
 from paho.mqtt.publish import single
-from caminhao import Caminhao
 from server import Server
-from flask import Flask
 
 class Setor(Server):
     
@@ -18,7 +16,6 @@ class Setor(Server):
         self.__lixeiras_coletar = []
         self.__lixeiras = []
         self.__setores = {}
-        self.caminhao = Caminhao(latitude, longitude, self._server_id)
     
     def receberDados(self):
         """Recebe e gerencia as mensagens dos topicos para o qual o setor foi inscrito
@@ -268,41 +265,4 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
     return list(setores.values())
 
 lista_setores = geradorSetores()
-caminhao = lista_setores[0].caminhao
-
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return 'Tudo certo por aqui!'
-
-# ########## ROTAS LIXEIRA ##########
-@app.route('/lixeiras/<number>', methods=['GET'])
-def getLixeirasByNumber(number: int):
-    try:
-        # lixeiras = adm.getLixeirasByNumber(number)
-        caminhao._msg = {'dados': {'acao': 'REQUEST', 'setor': f'{caminhao.getSetor()}' }}
-        caminhao.enviarDadosTopic('setor/'+caminhao.getSetor())                    # SOLICITA PRA SEU SETOR
-        number = int(number)
-        
-        lixos = caminhao.getLixeirasColetar()
-        
-        if  number >= 0 and number <= len(lixos):
-            return lixos[:number]
-
-        return str(lixos)
-    
-    except Exception as ex:
-        return f"Erro: {ex}"
-
-@app.route('/lixeira/<id>', methods=['GET'])
-def getLixeiraByID(id):
-    try:
-        # lixeiras = adm.getLixeiraByID(id)
-        return str(id)
-    except Exception as ex:
-        return f"Erro: {ex}"
-# ########## ROTAS LIXEIRA ##########
-
-app.run()
 lista_setores[0].run()
