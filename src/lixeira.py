@@ -157,8 +157,9 @@ def geradorLixeiras(qtd_lixeiras: int = 5,
     lixeiras = []
     for i in range (qtd_lixeiras):
         sleep(velocicdade_gerarLixeira)
-        lixeiras.append(Lixeira(latitude=randint(1, 2000), longitude=randint(1, 2000)))
+        lixeiras.append(Lixeira(id=i, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=1))
         lixeiras[i].run()
-    
-l = Lixeira(1, 10, 10, 1)
-l.run()
+   
+geradorLixeiras() 
+# l = Lixeira(1, 10, 10, 1)
+# l.run()

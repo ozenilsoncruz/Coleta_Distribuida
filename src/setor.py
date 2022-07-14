@@ -53,18 +53,19 @@ class Setor(Server):
         Args:
             msg (dict): mensagem recebido do caminhao
         """
+        
         if msg.get('dados') != '' and msg.get('dados') != None:
-            print('\nCaminhão ', msg.get('dados').get('id'), ' conectado!\n')
-            self.__caminhao = msg.get('dados')
+            #print('\nCaminhão ', msg.get('dados').get('caminhao').get('id'), ' conectado!\n')
+            self.__caminhao = msg.get('dados').get('caminhao')
         if msg.get('acao') != '' and msg.get('acao') != None:
             if 'REQUEST' in msg.get('acao'):
-                if len(self.__lixeiras_coletar) < 5:
+                if len(self.__lixeiras_coletar) < 3:
                     self.solicitarLixeira()
                 else:
-                    pass
+                    self.enviarDadosCaminhao()
             
-            mensagem = {'acao': 'esvaziar'}
-            self.enviarDados(f'{self._server_id}/caminhao/'+msg.get('acao'), mensagem)
+            # mensagem = {'acao': 'esvaziar'}
+            # self.enviarDados(f'{self._server_id}/caminhao/'+msg.get('acao'), mensagem)
                    
     def gerenciarLixeiras(self, msg):
         """Gerencia as mensagens recebidas  das lixeiras
@@ -164,11 +165,17 @@ class Setor(Server):
     def enviarDadosCaminhao(self):
         """Envia as lixeiras a serem coletada para o tópico caminhao/
         """
+        print('entrei aqui- aiiahfieie oq')
         coletar = [l for l in self.__lixeiras_coletar]
         if len(coletar):
             coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
-            mensagemCaminhao = {'dados': coletar}
-            self.enviarDados(f'{self._server_id}/caminhao/listaColeta', mensagemCaminhao)
+            mensagemCaminhao = {'dados': {'lixeiras': coletar}}
+            
+            #enviando msg para a lixeira
+            idSetor = self._server_id.split('/')
+            idSetor = idSetor[1]
+            
+            self.enviarDados(f'{self._server_id}/caminhao/{idSetor}/listaColeta', mensagemCaminhao)
           
     def enviarDadosServidor(self, permissao: str = '', objeto: dict = {}):
         """Envia informacoes de todas as para o topico do setor/
@@ -178,7 +185,7 @@ class Setor(Server):
                      'objeto': objeto},
             'dados': self.dadosSetor()      
         }
-        print('Enviando mensgem para os setores ---> ', msg)
+        #print('Enviando mensgem para os setores ---> ', msg)
         self.enviarDados(self._server_id, msg)
    
     def __separaIds(self, lixeiras: list) -> list:

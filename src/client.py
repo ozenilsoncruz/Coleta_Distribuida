@@ -14,7 +14,7 @@ class Cliente:
         self._client_id = f'{type}/{id}/'
         self._topic = topic+'/'+self._client_id
         self._topicsPublish = topicPublish
-        self._msg = {'dados': '', 'acao': ''}
+        self._msg = {'dados': {}, 'acao': ''}
         self._client_mqtt = Client(self._client_id)
     
     def connect_mqtt(self) -> Client:
