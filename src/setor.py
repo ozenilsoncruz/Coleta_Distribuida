@@ -300,3 +300,8 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
 
 s = Setor(1, 10, 20)
 s.run()
+
+listaSetores = []        
+for i in range (4):    
+    listaSetores.append(Setor(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
+    listaSetores[i].run()

@@ -130,7 +130,7 @@ class Caminhao(Cliente):
         self._client_mqtt.subscribe(f'setor/{idSetor}/{self._client_id}listaColeta')
  
 listaCaminhoes = []        
-for i in range (1):    
+for i in range (4):    
     listaCaminhoes.append(Caminhao(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
     listaCaminhoes[i].run()
 
