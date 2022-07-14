@@ -1,3 +1,4 @@
+from random import randint
 from threading import Thread
 from time import sleep
 from client import Cliente
@@ -6,12 +7,12 @@ from flask import Flask, render_template
 
 class Caminhao(Cliente):
 
-    def __init__(self, latitude, longitude):
+    def __init__(self, latitude, longitude, id):
         self.__latitude = latitude
         self.__longitude = longitude
         self.__capacidade = 10000 #m³
         self.__lixeiras_coletar = []
-        Cliente.__init__(self, "caminhao", "setor")
+        Cliente.__init__(self, id, "caminhao", "setor")
      
     def getLixeiras(self) -> list:
         """Retorna todas as lixeiras no sistema
@@ -81,6 +82,7 @@ class Caminhao(Cliente):
         self.__latitude = lixeira.get('latitude')
         self.__longitude = lixeira.get('longitude')
         self._msg['acao'] = ''
+        self._msg['dados'] = self.dadosCaminhao
         self.enviarDadosTopic('caminhao/')
     
     def receberDados(self):
@@ -102,13 +104,13 @@ class Caminhao(Cliente):
     def run(self):
         """"Metodo que inicia o servidor MQTT
         """
-        #self.iniciar_API(self.__latitude)
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
-        # Thread(target=self.iniciar_API, args=(self.__latitude, )).start()
-        
-        
-c = Caminhao(5000, 5001)
-c.run()
+ 
+listaCaminhoes = []        
+for i in range (4):    
+    listaCaminhoes.append(Caminhao(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
+    listaCaminhoes[i].run()
+
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -118,17 +120,19 @@ def index():
     return 'Tudo ok'
 
 ########## ROTAS LIXEIRA ##########
-@app.route('/lixeiras/<number>', methods=['GET'])
-def getLixeirasByNumber(number: int):
+@app.route('Caminhao/<idCaminhao>/lixeiras/<number>', methods=['GET'])
+def getLixeirasByNumber(idCaminhao: int,number: int):
     try:
+        c = listaCaminhoes[idCaminhao-1]
         lixeiras = c.getLixeirasByNumber(number)
         return str(lixeiras)
     except Exception as ex:
         return f"Erro: {ex}"
 
-@app.route('/lixeira/<id>', methods=['GET'])
-def getLixeiraByID(id):
+@app.route('Caminhao/<idCaminhao>/lixeira/<id>', methods=['GET'])
+def getLixeiraByID(idCaminhao: int, id):
     try:
+        c = listaCaminhoes[idCaminhao-1]
         lixeiras = c.getLixeiraByID(id)
         return str(lixeiras)
     except Exception as ex:

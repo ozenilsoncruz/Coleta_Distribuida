@@ -5,8 +5,8 @@ from threading import Thread
 
 class Lixeira(Cliente):
 
-    def __init__(self, latitude, longitude):
-        Cliente.__init__(self, type='lixeira', topic='setor')
+    def __init__(self, id, latitude, longitude, id_setor):
+        Cliente.__init__(self, id, type='lixeira', topic=f'setor/{id_setor}')
         self.__latitude = latitude
         self.__longitude = longitude
         self.__capacidade = 100 #m³
@@ -111,17 +111,17 @@ class Lixeira(Cliente):
         while True:
             try:
                 super().receberDados()
-                if( "atualizar_setor" in self._msg.get('acao')):
-                    id_setor = self._msg.get('acao').split(';')[1]
-                    self._msg['acao'] = ''
-                    print(f"\nAlocando Lixeira para o setor {id_setor}")
-                    self._client_mqtt.unsubscribe(self._topic)
-                    self._topic = self._topic.split('/')[0]+'/'+id_setor+'/'+self._client_id
-                    #self.connect_mqtt()
-                    self._client_mqtt.subscribe(self._topic)
-                    print('setor/caminhao/'+self._client_id)
-                    self._client_mqtt.subscribe('setor/caminhao/'+self._client_id)
-                    self.enviarDados()
+                # if( "atualizar_setor" in self._msg.get('acao')):
+                #     id_setor = self._msg.get('acao').split(';')[1]
+                #     self._msg['acao'] = ''
+                #     print(f"\nAlocando Lixeira para o setor {id_setor}")
+                #     self._client_mqtt.unsubscribe(self._topic)
+                #     self._topic = self._topic.split('/')[0]+'/'+id_setor+'/'+self._client_id
+                #     #self.connect_mqtt()
+                #     self._client_mqtt.subscribe(self._topic)
+                #     print('setor/caminhao/'+self._client_id)
+                #     self._client_mqtt.subscribe('setor/caminhao/'+self._client_id)
+                #     self.enviarDados()
                 if 'reservar' == self._msg.get('acao'):
                     self.__reservado = True
                 elif(self._msg.get('acao') == "esvaziar"):
@@ -160,4 +160,5 @@ def geradorLixeiras(qtd_lixeiras: int = 5,
         lixeiras.append(Lixeira(latitude=randint(1, 2000), longitude=randint(1, 2000)))
         lixeiras[i].run()
     
-geradorLixeiras()
+l = Lixeira(1, 10, 10, 1)
+l.run()

@@ -10,8 +10,8 @@ _PORT = 1883
 
 class Cliente: 
     
-    def __init__(self, type: str, topic: str ="", topicPublish: list = []):
-        self._client_id = f'{type}/'+"".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(4))+'/'
+    def __init__(self, id, type: str, topic: str ="", topicPublish: list = []):
+        self._client_id = f'{type}/{id}/'
         self._topic = topic+'/'+self._client_id
         self._topicsPublish = topicPublish
         self._msg = {'dados': '', 'acao': ''}
