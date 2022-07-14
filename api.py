@@ -27,33 +27,4 @@ def getLixeiraByID(id):
         return f"Erro: {ex}"
 ########## ROTAS LIXEIRA ##########
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 app.run()

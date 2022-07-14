@@ -13,6 +13,7 @@ class Lixeira(Cliente):
         self.__bloqueado = False
         self.__lixo = 0
         self.__porcentagem = 0
+        self.__reservado = False
         self._msg['acao'] = 'iniciar'
         
     def dadosLixeira(self):
@@ -32,7 +33,8 @@ class Lixeira(Cliente):
             "status": status, 
             "qtd_lixo": self.__lixo,
             "capacidade": self.__capacidade, 
-            "porcentagem": f'{self.__porcentagem:,.3f}'+'%'
+            "porcentagem": f'{self.__porcentagem:,.3f}'+'%',
+            "reservado": self.__reservado
         }
     
     def addLixo(self, lixo: int):
@@ -61,10 +63,12 @@ class Lixeira(Cliente):
             self.__bloqueado = False
         self.__lixo = 0
         self.__porcentagem = 0
+        self.__reservado = False
 
         #retorna nova informacao sobre o objeto
         self._msg['dados'] = self.dadosLixeira()
         self._msg['acao'] = ''
+        
         self.enviarDados()
         
         print(f"Lixeira {self._client_id} ESVAZIADA")
@@ -118,6 +122,8 @@ class Lixeira(Cliente):
                     print('setor/caminhao/'+self._client_id)
                     self._client_mqtt.subscribe('setor/caminhao/'+self._client_id)
                     self.enviarDados()
+                if 'reservar' == self._msg.get('acao'):
+                    self.__reservado = True
                 elif(self._msg.get('acao') == "esvaziar"):
                     print("Esvaziando Lixeira...")
                     self.esvaziarLixeira()

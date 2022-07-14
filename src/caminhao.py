@@ -1,21 +1,50 @@
 from time import sleep
 from client import Cliente
+from flask import Flask, render_template
+
 
 class Caminhao(Cliente):
 
-    def __init__(self, latitude, longitude, setor):
+    def __init__(self, latitude, longitude):
         self.__latitude = latitude
         self.__longitude = longitude
         self.__capacidade = 10000 #m³
-        self.__setor = setor
         self.__lixeiras_coletar = []
         Cliente.__init__(self, "caminhao", "setor")
+     
+    def getLixeiras(self) -> list:
+        """Retorna todas as lixeiras no sistema
+        
+        Resturns:
+            list: lista de lixeiras
+        """
+        return self.__lixeiras
+   
+    def getLixeirasByNumber(self, number: int) -> list:
+        """Retorna a quantidade de lixeiras exigida
+        Args:
+            number (int): numero de lixeiras a ser retornado
+        Returns:
+            list: lista de lixeiras
+        """
+        number = int(number)
+        # after subscribed, retrieve data from topic /lixeiras and limit by number
+        if  number >= 0 and number <= len(self.__lixeiras):
+            return self.__lixeiras[:number]
+        return self.__lixeiras
     
-    def getSetor(self):
-        return self.__setor
-    
-    def getLixeirasColetar(self):
-        return self.__lixeiras_coletar
+    def getLixeiraByID(self, id: str) -> dict:
+        """Busca uma lixera pelo id
+        Args:
+            id (str): id da lixera
+        Returns:
+            dict: dicionario contendo as informacoes de determinada lixeira 
+        """
+        # after subscribed, retrieve data from topic /lixeiras/id and return
+        for l in self.__lixeiras:
+            if id in l['id']:
+                return l
+        return {}
     
     def dadosCaminhao(self) -> dict:
         """Informacoes da lixeira
@@ -71,3 +100,35 @@ class Caminhao(Cliente):
         """
         super().run()
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
+
+    def iniciar_API(self):
+        app = Flask(__name__)
+        app.config['DEBUG'] = True
+
+        @app.route('/')
+        def index():
+            return render_template('index.html')
+
+        ########## ROTAS LIXEIRA ##########
+        @app.route('/lixeiras/<number>', methods=['GET'])
+        def getLixeirasByNumber(number: int):
+            try:
+                lixeiras = self.getLixeirasByNumber(number)
+                return str(lixeiras)
+            except Exception as ex:
+                return f"Erro: {ex}"
+
+        @app.route('/lixeira/<id>', methods=['GET'])
+        def getLixeiraByID(id):
+            try:
+                lixeiras = self.getLixeiraByID(id)
+                return str(lixeiras)
+            except Exception as ex:
+                return f"Erro: {ex}"
+        ########## ROTAS LIXEIRA ##########
+
+        app.run()
+        
+c = Caminhao(10, 20)
+
+c.iniciar_API()
