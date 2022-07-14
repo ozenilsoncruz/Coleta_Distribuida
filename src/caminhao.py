@@ -79,7 +79,7 @@ class Caminhao(Cliente):
         sleep(5)
         self.enviarDadosTopic('caminhao/')
         self.__latitude = lixeira.get('latitude')
-        self.__latitude = lixeira.get('longetude')
+        self.__longitude = lixeira.get('longitude')
         self._msg['acao'] = ''
         self.enviarDadosTopic('caminhao/')
     
@@ -99,11 +99,13 @@ class Caminhao(Cliente):
     def run(self):
         """"Metodo que inicia o servidor MQTT
         """
-        super().run()
+        #self.iniciar_API(self.__latitude)
         self._client_mqtt.subscribe('setor/caminhao/listaColeta')
-        # Thread(target=self.iniciar_API, args=(self.__latitude, )).start()
+        super().run()
+        #self.iniciar_API(self.__latitude)
 
     def iniciar_API(self, port):
+        print('entrei aqui')
         app = Flask(__name__)
         app.config['DEBUG'] = True
 
@@ -131,5 +133,7 @@ class Caminhao(Cliente):
 
         app.run(port =port)
         
-c = Caminhao(5000, 5001)
+c = Caminhao(5005, 5006)
+c.run()
 c2 = Caminhao(5002, 5003)
+c2.run()

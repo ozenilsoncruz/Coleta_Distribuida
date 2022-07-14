@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from math import dist
 from random import randint, choice
@@ -15,6 +16,8 @@ class Setor(Server):
         self.__longitude = longitude
         self.__lixeiras_coletar = []
         self.__lixeiras = []
+        self.__lixeiras_setor = {}
+        self.__lixeira_solicitada = {}
         self.__setores = {}
     
     def receberDados(self):
@@ -32,7 +35,7 @@ class Setor(Server):
                     if 'setor' in msg.topic and 'lixeira' not in msg.topic and self._server_id not in msg.topic:
                         Thread(target=self.gerenciarSetor, args=(mensagem, )).start()
                     if self._server_id == msg.topic:
-                        pass
+                        Thread(target=self.gerenciarThisSetor, args=(mensagem, )).start()
                     if 'lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
                     else:
@@ -100,7 +103,7 @@ class Setor(Server):
     
     
     
-    # ajustar --------------------------------
+
     def gerenciarSetor(self, msg: dict):
         """Gerencia as mensagens recebidas do setor
 
@@ -108,40 +111,53 @@ class Setor(Server):
             msg (dict): mensagem recebido do setor
         """
         if msg.get('dados') != '' or msg.get('dados') != None:
-            print('1111111111111', msg)
-            id =  msg.get('dados').get('setor').get('id')
-            self.__setores[id] = msg.get('dados').get('setor')
-            
-            if 'REQUEST' in msg.get('dados').get('acao'):
-                print('000000000000000000000000000', msg.topic, msg)
-                mensagem = {'dados': {'acao': '', 'setor': msg.get('dados').get('setor')}}       
+            print('Entrei no gerenciarSetor ----> ', msg)
+            id =  msg.get('dados').get('id')
+            if msg.get('dados').get('lixeirasCriticas') != self.__lixeiras_setor.get(id):
+                self.__lixeiras_setor[id] = msg.get('dados').get('lixeirasCriticas')
+            if 'REQUEST' in msg.get('dados').get('acao').get('permissao'):
+                print('\n\nVerificando requisicao\n\n')
+                mensagem = {'dados': {'acao': {'permissao': '', 
+                                               'objeto': msg.get('dados').get('acao').get('objeto')}, 
+                                      'dados': msg.get('dados')}}       
                  
-                # PODE EXECUTAR AQUI, O SOLICITANTE É MAIS ANTIGO (TEM PRIORIDADE)
-                if float(msg.get('dados').get('timestamp')) < self.timestamp and self.isRequesting == False:
-                    mensagem['dados']['acao']= 'REPLY'                           # ALTERAR TOPICO AQUI, POR UM MASSA QUE TODOS OS SETORES ESTEJAM INSCRITOS    
+                #Se a lixeira solicitada pelo outro for diferenta lixeira solicita
+                #ou se o momento de solicitacao do outro setor for menor, ele recebera a permissao
+                if self.__lixeira_solicitada != msg.get('dados').get('acao').get('objeto') or self.timestamp > float(msg.get('dados').get('timestamp')):
+                    mensagem['dados']['acao']['permissao'] = 'REPLY'
                     
                 # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
                 else:
-                    mensagem['dados']['acao']= 'DENIED'
+                    mensagem['dados']['acao']['permissao'] = 'DENIED'
                 self.enviarDados(id, mensagem)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
             
-    def gerenciarThisSetor(self, msg: dict):
+    def gerenciarThisSetor(self, msg: dict, id: str):
         """Gerencia as mensagem enviada para o proprio setor
 
         Args:
             msg (dict): mensagem recebida
         """
         if 'REPLY' in msg.get('dados').get('acao'):
-                # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
-                # ATUALIZAR TIMESTAMP AQUI E MARCAR QUE self.isRequesting = True. DESMARCAR QUANDO PARAR DE EXECUTAR                  
-                #Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
-            if len(self.__setores.values()) == 3:
-                self.exclusaoMutua(self.__setores)
-                pass
-            
-        if 'DENIED' in msg.get('dados').get('acao'):
-                print( 'aaaa')
-                # DO SOMETHING E RETORNAR SOLICITAÇÃO NEGADA
+            self.__setores[id] = msg.get('dados')
+            id =  msg.get('dados').get('id')
+            # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
+            if len(self.__setores.keys()) == 3:
+                self.__lixeiras_coletar.append(self.__lixeira_solicitada)
+        
+        #se a permisssao da lixera em questao for negada, uma nova solicitacao para outra lixeira sera realizada
+        if 'DENIED' in msg.get('dados').get('acao').get('permissao'):
+            if len(self.__lixeiras_coletar) <= 4:
+                auxiliar = []
+                coletar = [lixeira for lixeiras_setor in self.__lixeiras_setor.values() for lixeira in lixeiras_setor]
+                if len(coletar):
+                    coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
+                    for l in coletar:
+                        if l != self.__lixeira_solicitada:
+                            auxiliar = l
+                            break
+                self.__lixeira_solicitada = auxiliar
+                self.timestamp = datetime.now().timestamp()
+                self.enviarDadosServidor(permissao='REQUEST', objeto=self.__lixeira_solicitada)
       
     # ajustar -------------------------------------------------
     def enviarDadosCaminhao(self):
@@ -154,13 +170,14 @@ class Setor(Server):
             self.enviarDados('setor/caminhao/listaColeta', mensagemCaminhao)
           
     # ajustar -------------------------------------------------
-    def enviarDadosServidor(self, acao: str = ''):
+    def enviarDadosServidor(self, permissao: str = '', objeto: dict = {}):
         """Envia informacoes de todas as para o topico do setor/
         """
-        msg = {'dados': {'acao': acao,
-                         'setor': self.dadosSetor()
-                        }
-               }
+        msg = {
+            'acao': {'permissao': permissao,
+                     'objeto': objeto},
+            'dados': self.dadosSetor()      
+        }
         self.enviarDados(self._server_id, msg)
    
     def __separaIds(self, lixeiras: list) -> list:
@@ -185,6 +202,7 @@ class Setor(Server):
         """
         return {
             "id": self._server_id,
+            "lixeirasCriticas": [l for l in self.__lixeiras_coletar if not l.get('reservado')], #seleciona apenas as lixeiras que nao estiverem reservadas
             "latitude": self.__latitude,
             "longitude": self.__longitude,
             "timestamp": self.timestamp
@@ -208,10 +226,10 @@ class Setor(Server):
             return True
         else:
             return False
-       
+        
     # ajustar ------------------------------------------------- 
     def maisProximo(self, posicao: tuple[int, int], elementos: list[dict]):
-        """Seleciona o elemento mais proximo em relacao a uma linha reta
+        """Seleciona o elemento mais proximo considerando a distancia euclidiana
 
         Args:
             posicao (tuple[int, int]): localizacao do elemento a ser analizado
@@ -234,13 +252,7 @@ class Setor(Server):
     def run(self):
         super().run()
         self._server.subscribe(self._server_id)
-        msg = json.dumps({'dados': {'lixeiras': self.__lixeiras, 
-                         'lixeiras_coletar': self.__lixeiras_coletar,
-                         'setor': self.dadosSetor()
-                         }
-                }).encode("utf-8") 
-        #envia uma unica vez, uma mensagem com suas informacoes ao ser iniciado
-        single(topic=self._server_id+'/update/', payload=msg, hostname=self._broker, port=self._port)
+        
         
      
 def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
