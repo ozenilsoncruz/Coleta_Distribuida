@@ -91,14 +91,15 @@ class Caminhao(Cliente):
             idSetor = self._client_id.split('/')
             idSetor = idSetor[1]
 
-            self._msg['acao'] = 'esvaziar'
-            self.enviarDadosTopic(f"setor/{idSetor}/caminhao/{lixeira.get('id')}")
+            self._msg['acao'] = f'{lixeira.get("id")}'
+            self.enviarDadosTopic(f"setor/{idSetor}/caminhao/")
             
             #altera a localizacao do caminhao
             self.__latitude = lixeira.get('latitude')
             self.__longitude = lixeira.get('longitude')
             #aguarda 5 segundos ate coletar uma nova lixeira
             sleep(2)
+            
         
         self.enviarDadosSetor()
     
@@ -114,7 +115,7 @@ class Caminhao(Cliente):
                         self.coletarLixeira()
                 if len(self.__lixeiras_coletar) == 0:
                     self.enviarDadosSetor()
-                    
+
             except Exception as ex:
                 print("Erro ao receber dados => ", ex)
                 break
@@ -128,12 +129,24 @@ class Caminhao(Cliente):
         idSetor = idSetor[1]
         
         self._client_mqtt.subscribe(f'setor/{idSetor}/{self._client_id}listaColeta')
- 
-listaCaminhoes = []        
-for i in range (4):    
-    listaCaminhoes.append(Caminhao(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
-    listaCaminhoes[i].run()
 
+def geradorCaminhoes(qtd_caminhoes: int = 4) -> list[Caminhao]:
+    """Gera setores com diferentes posicoes
+
+    Args:
+        qtd_setores (int, optional): quantidade de setores a ser gerado. 4 por padrao.
+
+    Returns:
+        list: lista de setores
+    """
+    listaCaminhoes = []        
+    for i in range (qtd_caminhoes):    
+        listaCaminhoes.append(Caminhao(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
+        listaCaminhoes[i].run()
+
+    return listaCaminhoes
+
+geradorCaminhoes(2)
 
 # app = Flask(__name__)
 # app.config['DEBUG'] = True

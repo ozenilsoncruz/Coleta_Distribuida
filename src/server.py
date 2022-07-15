@@ -14,7 +14,6 @@ class Server():
         self._topics = topics
         self._server = Client(self._server_id)
         self.timestamp = datetime.now().timestamp()
-        self.isRequesting = False
     
     def getTimestamp(self):
         return self.timestamp

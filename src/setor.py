@@ -39,9 +39,10 @@ class Setor(Server):
                     elif self._server_id+"/request" == msg.topic:
                         Thread(target=self.gerenciarThisSetor, args=(mensagem, )).start()
                     elif 'setor/' in msg.topic and  self._server_id not in msg.topic:
-                        print("\n\nEntrei no topico geral dos setores\n\n")
+                        #print("\n\nEntrei no topico geral dos setores\n\n")
                         print(msg.topic)
                         Thread(target=self.gerenciarSetor, args=(mensagem, )).start()
+                        pass
                 return mensagem
             
             self._server.on_message = on_message
@@ -53,19 +54,24 @@ class Setor(Server):
         Args:
             msg (dict): mensagem recebido do caminhao
         """
+
+        if msg.get('dados') != None and msg.get('dados') != '':
+            if msg.get('dados').get('caminhao') != None and msg.get('dados').get('caminhao').get('id') not in self.__caminhao:
+                print('\nCaminhão ', msg.get('dados').get('caminhao').get('id'), ' conectado!\n')
+                self.__caminhao[msg.get('dados').get('caminhao').get('id')] = msg.get('dados').get('caminhao')
         
-        if msg.get('dados') != '' and msg.get('dados') != None:
-            #print('\nCaminhão ', msg.get('dados').get('caminhao').get('id'), ' conectado!\n')
-            self.__caminhao = msg.get('dados').get('caminhao')
-        if msg.get('acao') != '' and msg.get('acao') != None:
-            if 'REQUEST' in msg.get('acao'):
+        if msg.get('acao') != None and msg.get('acao') != '':
+            if 'REQUEST' == msg.get('acao'): #solicita as lixeiras para o caminhao
                 if len(self.__lixeiras_coletar) < 3:
-                    self.solicitarLixeira()
+                    aux = []
+                    aux = [aux.extend(i) for i in list(self.__lixeiras_setor.values())]
+                    if len(aux) > 0:
+                        self.solicitarLixeira()
                 else:
-                    self.enviarDadosCaminhao()
-            
-            # mensagem = {'acao': 'esvaziar'}
-            # self.enviarDados(f'{self._server_id}/caminhao/'+msg.get('acao'), mensagem)
+                    self.enviarDadosCaminhao()      
+            else:
+                mensagem = {'acao': 'esvaziar'}
+                self.enviarDados(f'{self._server_id}/caminhao/'+msg.get('acao'), mensagem)
                    
     def gerenciarLixeiras(self, msg):
         """Gerencia as mensagens recebidas  das lixeiras
@@ -73,30 +79,26 @@ class Setor(Server):
         Args:
             msg (dict): mensagem recebida de uma determinada lixeira
         """
-        if 'dados' in msg:
-            
-            # if self.exclusaoMutua() == True:
-                
+        if 'dados' in msg:     
             lixeirasId = self.__separaIds(self.__lixeiras)
             lixeirasColetarId = self.__separaIds(self.__lixeiras_coletar)
             #se as lixeira nao estiver na lista de lixeras, ela sera adicionada, se estiver tera seu dados atualizado
+            print(lixeirasId)
+            print(msg.get('dados').get('id'))
+            print(msg.get('dados').get('id') in lixeirasId)
             if msg.get('dados').get('id') not in lixeirasId:
-                print(f"\nLixeira {msg.get('dados').get('id')} conectada!")
+                print(f"\nLixeira {msg['dados']['id']} conectada")
                 self.__lixeiras.append(msg['dados'])
             else:
                 self.__lixeiras[lixeirasId.index(msg['dados']['id'])] = msg['dados']
-            
-            #se a lixeira ja estiver reservada mas estiver na lista de 
-            # if msg.get('dados') and msg.get('dados').get('reservado'):
-            #     pass
+                
             #verifica se a lixeira ja esta em estado critico
             if float(msg.get('dados').get('porcentagem')[:3]) >= 75:
                 print(f'LIXEIRA {msg["dados"]["id"]} ESTÁ EM ESTADO CRÍTICO!')
                 
-                #reservando lixeira
-                mensagem = {'acao': 'reservar'}
-                self.enviarDados('lixeira/'+msg.get('dados').get('id'), mensagem)
-                   
+                # #reservando lixeira
+                # mensagem = {'acao': 'reservar'}
+                # self.enviarDados(msg.get('dados').get('id'), mensagem)
                 if msg['dados']['id'] not in lixeirasColetarId:
                         self.__lixeiras_coletar.append(msg.get('dados'))
                 else:
@@ -104,10 +106,13 @@ class Setor(Server):
                     
             else:
                 if msg['dados']['id'] in lixeirasColetarId:
+                    print(lixeirasColetarId.index(msg['dados']['id']))
                     self.__lixeiras_coletar.pop(lixeirasColetarId.index(msg['dados']['id']))
-            print("\n\n\nLixeiras:    ", self.__lixeiras)
-            print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
-            self.enviarDadosServidor()    
+            self.__lixeiras = list(set(self.__lixeiras))
+            self.__lixeiras_coletar = list(set(self.__lixeiras_coletar))
+            # print("\n\n\nLixeiras:    ", self.__lixeiras)
+            # print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
+            self.enviarDadosServidor()
 
     def gerenciarSetor(self, msg: dict):
         """Gerencia as mensagens recebidas do setor
@@ -117,6 +122,7 @@ class Setor(Server):
         """
         if msg.get('dados') != '' or msg.get('dados') != None:
             id =  msg.get('dados').get('id')
+            print('entrei aqui', id)
             if msg.get('dados').get('lixeirasCriticas') != self.__lixeiras_setor.get(id):
                 self.__lixeiras_setor[id] = msg.get('dados').get('lixeirasCriticas')
             if 'REQUEST' in msg.get('acao').get('permissao'):
@@ -212,25 +218,6 @@ class Setor(Server):
             "longitude": self.__longitude,
             "timestamp": self.timestamp
         }
-    
-    def exclusaoMutua(self, setoresTimestamps = {}):
-        """
-           setoresTimestamps : DICIONARIO DE TIMESTAMPS DE SETORES, NECESSARIO ADAPTAR PARA PEGAR SOMENTE OS TIMESTAMPS
-        """
-        # ENVIAR SELF.TIMESTAMP PARA TODOS OS DEMAIS SETORES, 
-        # O SETOR RECEPTOR RETORNA TRUE SE:
-            # SEU TIMESTAMP FOR MAIOR QUE O DO SOLICITANTE
-            # E 
-            # SE SELF.ISREQUESTING FOR FALSE
-        # SE ALGUM SETOR RECEPTOR RETORNAR FALSE, NÃO DEVE EXECUTAR
-        # SE TODOS FOREM TRUE, PODE EXECUTAR
-        
-        menorTimestamp = min(data[0] for data in setoresTimestamps.values())        # PEGA O MENOR TIMESTAMP DO DICIONARIO DE TIMESTAMPS DE TODOS OS SETORES
-        
-        if self.timestamp <= menorTimestamp:
-            return True
-        else:
-            return False
         
     def maisProximo(self, posicao: tuple[int, int], elementos: list[dict]):
         """Seleciona o elemento mais proximo considerando a distancia euclidiana
@@ -286,19 +273,11 @@ def geradorSetores(qtd_setores: int = 4) -> list[Setor]:
     Returns:
         list: lista de setores
     """
-    setores = {}
-    for i in range(qtd_setores):
-        latitude = (i+2)*randint(1, 2*qtd_setores)
-        longitude = (i+2) * randint(1 , 2*qtd_setores)
+    listaSetores = []        
+    for i in range (qtd_setores):    
+        listaSetores.append(Setor(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
+        listaSetores[i].run()
         
-        #evita que setores com a mesma posicao sejam criados
-        if (latitude, longitude) not in setores:
-            setores[(latitude, longitude)] = Setor(latitude, longitude)
-            continue
-        i -= 1
-    return list(setores.values())
+    return listaSetores
 
-listaSetores = []        
-for i in range (4):    
-    listaSetores.append(Setor(latitude=(i+1)*randint(1, 2000), longitude=(i+1)*randint(1, 2000), id=i+1))
-    listaSetores[i].run()
+geradorSetores(1)

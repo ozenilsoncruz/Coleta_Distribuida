@@ -123,6 +123,7 @@ class Lixeira(Cliente):
                 #     self._client_mqtt.subscribe('setor/caminhao/'+self._client_id)
                 #     self.enviarDados()
                 if 'reservar' == self._msg.get('acao'):
+                    print('entreiiiiiiiiiiii ==================')
                     self.__reservado = True
                 elif(self._msg.get('acao') == "esvaziar"):
                     print("Esvaziando Lixeira...")
@@ -160,9 +161,10 @@ def geradorLixeiras(qtd_lixeiras: int = 20,
         sleep(velocicdade_gerarLixeira)
         if i%5 == 0:
             id = int(i/5)
-        lixeiras.append(Lixeira(id=i, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=id+1))
+        print(id)
+        lixeiras.append(Lixeira(id=i+1, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=id+1))
         lixeiras[i].run()
+    
+    return lixeiras
    
-geradorLixeiras() 
-# l = Lixeira(1, 10, 10, 1)
-# l.run()
+geradorLixeiras(2)
