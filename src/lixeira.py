@@ -111,17 +111,6 @@ class Lixeira(Cliente):
         while True:
             try:
                 super().receberDados()
-                # if( "atualizar_setor" in self._msg.get('acao')):
-                #     id_setor = self._msg.get('acao').split(';')[1]
-                #     self._msg['acao'] = ''
-                #     print(f"\nAlocando Lixeira para o setor {id_setor}")
-                #     self._client_mqtt.unsubscribe(self._topic)
-                #     self._topic = self._topic.split('/')[0]+'/'+id_setor+'/'+self._client_id
-                #     #self.connect_mqtt()
-                #     self._client_mqtt.subscribe(self._topic)
-                #     print('setor/caminhao/'+self._client_id)
-                #     self._client_mqtt.subscribe('setor/caminhao/'+self._client_id)
-                #     self.enviarDados()
                 if 'reservar' == self._msg.get('acao'):
                     print('entreiiiiiiiiiiii ==================')
                     self.__reservado = True
@@ -167,4 +156,4 @@ def geradorLixeiras(qtd_lixeiras: int = 20,
     
     return lixeiras
    
-geradorLixeiras(10)
+geradorLixeiras(6)

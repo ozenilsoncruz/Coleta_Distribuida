@@ -234,8 +234,11 @@ class Setor(Server):
 
         for e in elementos:    
             b = (e['latitude'], e['longitude'])
-            c = (mais_prox['latitude'], mais_prox['latitude'])
-            
+            c = (mais_prox['latitude'], mais_prox['longitude'])
+
+            print(b)
+            print(c)
+            print(posicao)
             if (dist(posicao, b) < dist(posicao, c)):
                 mais_prox = e
                 
