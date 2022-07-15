@@ -123,7 +123,6 @@ class Setor(Server):
         """
         if msg.get('dados') != '' or msg.get('dados') != None:
             id =  msg.get('dados').get('id')
-            print('entrei aqui', id)
             if msg.get('dados').get('lixeirasCriticas') != self.__lixeiras_setor.get(id):
                 self.__lixeiras_setor[id] = msg.get('dados').get('lixeirasCriticas')
             if 'REQUEST' in msg.get('acao').get('permissao'):
@@ -131,40 +130,39 @@ class Setor(Server):
                 mensagem = {'dados': {'acao': {'permissao': '', 
                                                'objeto': msg.get('acao').get('objeto')}, 
                                       'dados': msg.get('dados')}}       
-                 
                 #Se a lixeira solicitada pelo outro for diferenta lixeira solicita
                 #ou se o momento de solicitacao do outro setor for menor, ele recebera a permissao
                 if msg.get('acao').get('objeto') not in self.__lixeiras_coletar:
                     if self.__lixeira_solicitada != msg.get('acao').get('objeto') or self.timestamp > float(msg.get('dados').get('timestamp')):
                         mensagem['dados']['acao']['permissao'] = 'REPLY'
-                        print('Recurso disponível!\n')
                 # DEU XABU, O RECEPTOR É MAIS ANTIGO (TEM PRIORIDADE)
                 else:
                     mensagem['dados']['acao']['permissao'] = 'DENIED'
-                    print('Recurso negado!\n')
                 self.enviarDados(id+"/request", mensagem)                        # ALTERAR TOPICO AQUI, POR UM MASSA QUE SEJA SOMENTE O DO SETOR SOLICITANTE                            
             
-    def gerenciarThisSetor(self, msg: dict, id: str):
+    def gerenciarThisSetor(self, msg: dict):
         """Gerencia as mensagem enviada para o proprio setor
 
         Args:
             msg (dict): mensagem recebida
         """
         if 'REPLY' in msg.get('acao'):
-            self.__setores[id] = msg.get('dados')
             id =  msg.get('dados').get('id')
+            self.__setores[id] = msg.get('dados')
             # ACUMULAR UNICAMENTE OS SETORES E SEUS TIMESTAMPS AQUI PARA self.exclusaoMutua() EXECUTAR
             if len(self.__setores.keys()) == 3:
+                print('\nRecurso disponível!\n')
                 print('\n\nReservando lixeira de outro setor...\n\n')
                 #reservando lixeira
-                mensagem = {'acao': 'reservar'}
-                self.enviarDados('lixeira/'+msg.get('dados').get('id'), mensagem)
-                print("Lixeira ", self.__lixeira_solicitada.get('id'), " reservada!")
-                self.__lixeiras_coletar.append(self.__lixeira_solicitada) 
-                self.solicitarLixeira()
-                self.__setores.clear()
+                # mensagem = {'acao': 'reservar'}
+                # self.enviarDados('lixeira/'+msg.get('dados').get('id'), mensagem)
+                # print("Lixeira ", self.__lixeira_solicitada.get('id'), " reservada!")
+                # self.__lixeiras_coletar.append(self.__lixeira_solicitada) 
+                # self.solicitarLixeira()
+                # self.__setores.clear()
         #se a permisssao da lixera em questao for negada, uma nova solicitacao para outra lixeira sera realizada
         if 'DENIED' in msg.get('acao').get('permissao'):
+            print('Recurso negado!\n')
             self.solicitarLixeira()
       
     def enviarDadosCaminhao(self):
@@ -233,12 +231,9 @@ class Setor(Server):
         mais_prox = elementos[0] #tomandoo mais proximo como o primeiro elemento
 
         for e in elementos:    
-            b = (e['latitude'], e['longitude'])
-            c = (mais_prox['latitude'], mais_prox['longitude'])
+            b = (int(e['latitude']), int(e['longitude']))
+            c = (int(mais_prox['latitude']), int(mais_prox['longitude']))
 
-            print(b)
-            print(c)
-            print(posicao)
             if (dist(posicao, b) < dist(posicao, c)):
                 mais_prox = e
                 
@@ -255,7 +250,7 @@ class Setor(Server):
             auxiliar = []
             coletar = [lixeira for lixeiras_setor in self.__lixeiras_setor.values() for lixeira in lixeiras_setor]
             if len(coletar):
-                posicao_caminhao = (self.__caminhao.get('latitude'),self.__caminhao.get('latitude'))
+                posicao_caminhao = (int(self.__caminhao.get('latitude')), int(self.__caminhao.get('longitude')))
                 
                 coletar = sorted(coletar, key=lambda l:l["porcentagem"], reverse=True)
                 for l in coletar:

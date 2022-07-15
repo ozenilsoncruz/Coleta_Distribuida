@@ -62,16 +62,32 @@ class Caminhao(Cliente):
             "longitude": self.__longitude
         }
     
-    def enviarDadosSetor(self):
-        """Envia dados para o setor que pertence solicitando mais lixeiras
+    # def enviarDadosSetor(self):
+    #     """Envia dados para o setor que pertence solicitando mais lixeiras
+    #     """
+    #     self._msg['acao'] = 'REQUEST'
+    #     self._msg['dados']['caminhao'] = self.dadosCaminhao()
+        
+    #     idSetor = self._client_id.split('/')
+    #     idSetor = idSetor[1]
+    #     self.enviarDadosTopic(f'setor/{idSetor}/{self._client_id}')
+    
+    def enviarDadosLixeira(self, topic):
+        """Envia mensagens no formato json para determinado topico
+        Args:
+            topic (str): topico de destino
+            msg (dict): mensagem a convertida em json e enviada
+        Raises:
+            Exception: Retorna um erro para o caso do envio falhar
         """
-        self._msg['acao'] = 'REQUEST'
-        self._msg['dados']['caminhao'] = self.dadosCaminhao()
-        
-        idSetor = self._client_id.split('/')
-        idSetor = idSetor[1]
-        self.enviarDadosTopic(f'setor/{idSetor}/{self._client_id}')
-        
+        try:
+            msg = json.dumps({'acao': 'esvaziar'}).encode("utf-8")
+            result = self._client_mqtt.publish(topic, msg)
+            if result[0] != 0:
+               raise Exception("Mensagem não enviada para o topico "+"'"+topic+"'")
+        except Exception as ex:
+            print(ex)
+     
     def coletarLixeira(self):
         """
         Esvazia a lixeira
@@ -87,21 +103,26 @@ class Caminhao(Cliente):
                 self.__capacidade = 10000
             self.__capacidade -= lixeira.get('qtd_lixo')
             
+            self._msg['acao'] = lixeira.get("id")
+            idSetor = self._client_id.split('/')[1]
+            self.enviarDadosTopic(f'setor/{idSetor}/{self._client_id}')
+            #self.enviarDadosLixeira(lixeira.get("id"))
             #enviando msg para a lixeira
-            idSetor = self._client_id.split('/')
-            idSetor = idSetor[1]
+            # idSetor = self._client_id.split('/')
+            # idSetor = idSetor[1]
 
-            self._msg['acao'] = f'{lixeira.get("id")}'
-            self.enviarDadosTopic(f"setor/{idSetor}/caminhao/")
-            
             #altera a localizacao do caminhao
-            self.__latitude = lixeira.get('latitude')
-            self.__longitude = lixeira.get('longitude')
-            #aguarda 5 segundos ate coletar uma nova lixeira
-            sleep(2)
+            # self.__latitude = lixeira.get('latitude')
+            # self.__longitude = lixeira.get('longitude')
+            # self._msg['dados']['caminhao'] = self.dadosCaminhao()
+            # self._msg['acao'] = f'{lixeira.get("id")}'
+            # self._msg['dados']['lixeira'] = ''
             
-        
-        self.enviarDadosSetor()
+            # self.enviarDadosTopic(f"setor/{idSetor}/caminhao/")
+            
+            #aguarda 5 segundos ate coletar uma nova lixeira
+            sleep(3)
+            self.__lixeiras_coletar.remove(lixeira)
     
     def receberDados(self):
         """Recebe a mensagem do servidor e realiza ações
@@ -111,11 +132,23 @@ class Caminhao(Cliente):
                 super().receberDados()
                 if self._msg.get('dados') != None and self._msg.get('dados') != '' and self._msg.get('dados').get('lixeiras') != None and self._msg.get('dados').get('lixeiras') != '':
                     self.__lixeiras_coletar = self._msg.get('dados').get('lixeiras')
-                    # print('LLLLLLLLLLLLL ', self.__lixeiras_coletar)
+                    self._msg['dados']['lixeira'] = ''
                     if self.__lixeiras_coletar != None and len(self.__lixeiras_coletar) > 0:
+                        
+                        self._msg['dados']['caminhao'] = self.dadosCaminhao()
+                        self._msg['acao'] = ''
+                        self._msg['dados']['lixeira'] = ''
+                        idSetor = self._client_id.split('/')[1]
+                        
+                        self.enviarDadosTopic(f"setor/{idSetor}/caminhao/")
+                        
                         self.coletarLixeira()
                 if len(self.__lixeiras_coletar) == 0:
-                    self.enviarDadosSetor()
+                    self._msg['acao'] = 'REQUEST'
+                    self._msg['dados']['caminhao'] = self.dadosCaminhao()
+                    idSetor = self._client_id.split('/')[1]
+                    
+                    self.enviarDadosTopic(f'setor/{idSetor}/{self._client_id}')
 
             except Exception as ex:
                 print("Erro ao receber dados => ", ex)
@@ -148,7 +181,7 @@ def geradorCaminhoes(qtd_caminhoes: int = 4) -> list[Caminhao]:
     return listaCaminhoes
 
 # listaCaminhoes = geradorCaminhoes(1)
-c = Caminhao(latitude=(0+1)*randint(1, 2000), longitude=(0+1)*randint(1, 2000), id=0+1)
+c = Caminhao(latitude=(0+1)*randint(1, 2000), longitude=(0+1)*randint(1, 2000), id=1)
 
 
 app = Flask(__name__)

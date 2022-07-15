@@ -112,7 +112,6 @@ class Lixeira(Cliente):
             try:
                 super().receberDados()
                 if 'reservar' == self._msg.get('acao'):
-                    print('entreiiiiiiiiiiii ==================')
                     self.__reservado = True
                 elif(self._msg.get('acao') == "esvaziar"):
                     print("Esvaziando Lixeira...")
@@ -124,9 +123,10 @@ class Lixeira(Cliente):
                     print("Desbloqueando Lixeira...")
                     self.desbloquear()
                 elif(self._msg.get('acao') == "iniciar"):
-                    sleep(5)
+                    sleep(2)
                     self._msg['dados'] = self.dadosLixeira()
                     self.enviarDadosTopic(self._client_id)
+                    self._client_mqtt.subscribe(self._client_id)
             except Exception as ex:
                 print("Erro ao receber dados => ", ex)
                 break
@@ -150,10 +150,9 @@ def geradorLixeiras(qtd_lixeiras: int = 20,
         sleep(velocicdade_gerarLixeira)
         if i%5 == 0:
             id = int(i/5)
-        print(id)
         lixeiras.append(Lixeira(id=i+1, latitude=randint(1, 2000), longitude=randint(1, 2000), id_setor=id+1))
         lixeiras[i].run()
     
     return lixeiras
    
-geradorLixeiras(6)
+geradorLixeiras(5)
