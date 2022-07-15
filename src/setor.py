@@ -108,8 +108,10 @@ class Setor(Server):
                 if msg['dados']['id'] in lixeirasColetarId:
                     print(lixeirasColetarId.index(msg['dados']['id']))
                     self.__lixeiras_coletar.pop(lixeirasColetarId.index(msg['dados']['id']))
-            self.__lixeiras = list(set(self.__lixeiras))
-            self.__lixeiras_coletar = list(set(self.__lixeiras_coletar))
+            
+            self.__lixeiras = [dict(t) for t in {tuple(d.items()) for d in  self.__lixeiras}]
+            self.__lixeiras_coletar = [dict(t) for t in {tuple(d.items()) for d in self.__lixeiras_coletar}]
+            
             # print("\n\n\nLixeiras:    ", self.__lixeiras)
             # print("\n\n\nLista de coleta:    ", self.__lixeiras_coletar,"\n\n\n")
             self.enviarDadosServidor()

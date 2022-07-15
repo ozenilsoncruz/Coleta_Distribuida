@@ -146,7 +146,7 @@ def geradorCaminhoes(qtd_caminhoes: int = 4) -> list[Caminhao]:
 
     return listaCaminhoes
 
-geradorCaminhoes(2)
+geradorCaminhoes(1)
 
 # app = Flask(__name__)
 # app.config['DEBUG'] = True
