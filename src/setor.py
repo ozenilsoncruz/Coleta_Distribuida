@@ -32,9 +32,9 @@ class Setor(Server):
                     mensagem = json.loads(mensagem)
                     
                     # if 'setor' in msg.topic and 'lixeira' not in msg.topic and self._server_id not in msg.topic:
-                    if 'lixeira' in msg.topic:
+                    if self._server_id+'lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
-                    elif 'caminhao' in msg.topic:
+                    elif self._server_id+'caminhao' in msg.topic:
                         Thread(target=self.gerenciarCaminhao, args=(mensagem, )).start()
                     elif self._server_id+"/request" == msg.topic:
                         Thread(target=self.gerenciarThisSetor, args=(mensagem, )).start()
@@ -69,7 +69,8 @@ class Setor(Server):
                         self.solicitarLixeira()
                 else:
                     self.enviarDadosCaminhao()      
-            else:
+            elif 'lixeira' in msg.get('acao'):
+                print(msg.get('acao'))
                 mensagem = {'acao': 'esvaziar'}
                 self.enviarDados(f'{self._server_id}/caminhao/'+msg.get('acao'), mensagem)
                    
@@ -83,9 +84,9 @@ class Setor(Server):
             lixeirasId = self.__separaIds(self.__lixeiras)
             lixeirasColetarId = self.__separaIds(self.__lixeiras_coletar)
             #se as lixeira nao estiver na lista de lixeras, ela sera adicionada, se estiver tera seu dados atualizado
-            print(lixeirasId)
-            print(msg.get('dados').get('id'))
-            print(msg.get('dados').get('id') in lixeirasId)
+            # print(lixeirasId)
+            # print(msg.get('dados').get('id'))
+            # print(msg.get('dados').get('id') in lixeirasId)
             if msg.get('dados').get('id') not in lixeirasId:
                 print(f"\nLixeira {msg['dados']['id']} conectada")
                 self.__lixeiras.append(msg['dados'])
