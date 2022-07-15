@@ -111,6 +111,7 @@ class Caminhao(Cliente):
                 super().receberDados()
                 if self._msg.get('dados') != None and self._msg.get('dados') != '' and self._msg.get('dados').get('lixeiras') != None and self._msg.get('dados').get('lixeiras') != '':
                     self.__lixeiras_coletar = self._msg.get('dados').get('lixeiras')
+                    # print('LLLLLLLLLLLLL ', self.__lixeiras_coletar)
                     if self.__lixeiras_coletar != None and len(self.__lixeiras_coletar) > 0:
                         self.coletarLixeira()
                 if len(self.__lixeiras_coletar) == 0:
@@ -146,33 +147,38 @@ def geradorCaminhoes(qtd_caminhoes: int = 4) -> list[Caminhao]:
 
     return listaCaminhoes
 
-geradorCaminhoes(1)
+# listaCaminhoes = geradorCaminhoes(1)
+c = Caminhao(latitude=(0+1)*randint(1, 2000), longitude=(0+1)*randint(1, 2000), id=0+1)
 
-# app = Flask(__name__)
-# app.config['DEBUG'] = True
 
-# @app.route('/')
-# def index():
-#     return 'Tudo ok'
+app = Flask(__name__)
+app.config['DEBUG'] = True
 
-# ######### ROTAS LIXEIRA ##########
-# @app.route('/caminhao/<idCaminhao>/lixeiras/<number>', methods=['GET'])
-# def getLixeirasByNumber(idCaminhao: int,number: int):
-#     try:
-#         c = listaCaminhoes[idCaminhao-1]
-#         lixeiras = c.getLixeirasByNumber(number)
-#         return str(lixeiras)
-#     except Exception as ex:
-#         return f"Erro: {ex}"
+@app.route('/')
+def index():
+    return 'Tudo ok'
 
-# @app.route('/caminhao/<idCaminhao>/lixeira/<id>', methods=['GET'])
-# def getLixeiraByID(idCaminhao: int, id):
-#     try:
-#         c = listaCaminhoes[idCaminhao-1]
-#         lixeiras = c.getLixeiraByID(id)
-#         return str(lixeiras)
-#     except Exception as ex:
-#         return f"Erro: {ex}"
-# ########## ROTAS LIXEIRA ##########
+######### ROTAS LIXEIRA ##########
+@app.route('/caminhao/<idCaminhao>/lixeiras/<number>', methods=['GET'])
+def getLixeirasByNumber(idCaminhao: int,number: int):
+    try:
+        idCaminhao = int(idCaminhao)
+        # c = listaCaminhoes[idCaminhao-1]
+        lixeiras = c.getLixeirasByNumber(number)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
 
-# app.run()
+@app.route('/caminhao/<idCaminhao>/lixeira/<id>', methods=['GET'])
+def getLixeiraByID(idCaminhao: int, id):
+    try:
+        idCaminhao = int(idCaminhao)
+        # c = listaCaminhoes[idCaminhao-1]
+        lixeiras = c.getLixeiraByID(id)
+        return str(lixeiras)
+    except Exception as ex:
+        return f"Erro: {ex}"
+########## ROTAS LIXEIRA ##########
+
+app.run()
+c.run()
