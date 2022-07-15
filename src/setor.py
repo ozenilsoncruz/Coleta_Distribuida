@@ -37,11 +37,10 @@ class Setor(Server):
                         Thread(target=self.gerenciarCaminhao, args=(mensagem, )).start()
                     elif self._server_id+"/request" == msg.topic:
                         Thread(target=self.gerenciarThisSetor, args=(mensagem, )).start()
-                    elif 'setor/' in msg.topic and  self._server_id not in msg.topic:
+                    elif 'setores' in msg.topic and self._server_id not in msg.topic:
                         #print("\n\nEntrei no topico geral dos setores\n\n")
                         print(msg.topic)
                         Thread(target=self.gerenciarSetor, args=(mensagem, )).start()
-                        pass
                 return mensagem
             
             self._server.on_message = on_message
@@ -191,7 +190,7 @@ class Setor(Server):
             'dados': self.dadosSetor()      
         }
         #print('Enviando mensgem para os setores ---> ', msg)
-        self.enviarDados(self._server_id, msg)
+        self.enviarDados(self._server_id+'/setores', msg)
    
     def __separaIds(self, lixeiras: list) -> list:
         """Organiza a ordem de coleta por parte do adm
