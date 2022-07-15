@@ -31,10 +31,9 @@ class Setor(Server):
                 if mensagem:
                     mensagem = json.loads(mensagem)
                     
-                    # if 'setor' in msg.topic and 'lixeira' not in msg.topic and self._server_id not in msg.topic:
-                    if self._server_id+'lixeira' in msg.topic:
+                    if self._server_id+'/lixeira' in msg.topic:
                         Thread(target=self.gerenciarLixeiras, args=(mensagem, )).start()
-                    elif self._server_id+'caminhao' in msg.topic:
+                    elif self._server_id+'/caminhao' in msg.topic:
                         Thread(target=self.gerenciarCaminhao, args=(mensagem, )).start()
                     elif self._server_id+"/request" == msg.topic:
                         Thread(target=self.gerenciarThisSetor, args=(mensagem, )).start()

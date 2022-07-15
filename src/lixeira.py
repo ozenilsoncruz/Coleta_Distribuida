@@ -167,4 +167,4 @@ def geradorLixeiras(qtd_lixeiras: int = 20,
     
     return lixeiras
    
-geradorLixeiras(5)
+geradorLixeiras(10)
